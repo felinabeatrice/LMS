@@ -3,66 +3,52 @@ import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
 
-const StatCard = ({ icon, label, value, color, to }) => {
+const StatCard = ({ icon, label, value, sub, color, to }) => {
   const content = (
-    <div className={`bg-white rounded-xl border border-gray-200 p-5
-                     hover:shadow-md transition-shadow`}>
+    <div className="bg-white rounded-xl border border-gray-200 p-5
+                    hover:shadow-md transition-shadow">
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center
                        text-xl mb-3 ${color}`}>
         {icon}
       </div>
       <div className="text-2xl font-bold text-gray-900 mb-0.5">{value}</div>
       <div className="text-sm text-gray-500">{label}</div>
+      {sub && (
+        <div className="text-xs text-gray-400 mt-1">{sub}</div>
+      )}
     </div>
   );
-  return to ? <Link to={to}>{content}</Link> : content;
+  return to ? (
+    <Link to={to} className="block">{content}</Link>
+  ) : content;
 };
 
-const StudentDashboard = () => {
+const AdminDashboard = () => {
   const { user } = useAuth();
-
-  const [stats,       setStats]       = useState(null);
-  const [enrollments, setEnrollments] = useState([]);
-  const [loading,     setLoading]     = useState(true);
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchStats = async () => {
       setLoading(true);
+      setError('');
       try {
-        const [enrollRes, payRes] = await Promise.all([
-          api.get('/enrollments/my-enrollments'),
-          api.get('/payments/my-payments'),
-        ]);
-
-        const enrolls  = enrollRes.data.enrollments || [];
-        const payments = payRes.data.payments       || [];
-
-        const totalSpent = payments
-          .filter((p) => p.status === 'completed')
-          .reduce((sum, p) => sum + parseFloat(p.amount), 0);
-
-        setStats({
-          totalEnrolled:  enrolls.length,
-          withAccess:     enrolls.filter((e) => e.has_access).length,
-          totalPayments:  payments.length,
-          totalSpent:     totalSpent.toFixed(2),
-        });
-
-        // Show only latest 3
-        setEnrollments(enrolls.slice(0, 3));
-      } catch (err) {
-        console.error('Dashboard error:', err.message);
+        const res = await api.get('/admin/stats');
+        setStats(res.data.stats);
+      } catch {
+        setError('Failed to load dashboard stats.');
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+    fetchStats();
   }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent
+        <div className="w-8 h-8 border-4 border-red-600 border-t-transparent
                         rounded-full animate-spin" />
       </div>
     );
@@ -74,167 +60,210 @@ const StudentDashboard = () => {
 
         {/* ── Header ──────────────────────────────────── */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user?.name} 👋
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Here's your learning overview
+          <div className="flex items-center gap-3 mb-1">
+            <span className="bg-red-100 text-red-700 text-xs font-semibold
+                             px-2.5 py-1 rounded-full">
+              ADMIN
+            </span>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Admin Dashboard
+            </h1>
+          </div>
+          <p className="text-gray-500 text-sm">
+            Welcome back, {user?.name} — System overview
           </p>
         </div>
 
-        {/* ── Stats ───────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            icon="📚"
-            label="Courses Enrolled"
-            value={stats?.totalEnrolled ?? 0}
-            color="bg-blue-50"
-            to="/student/enrollments"
-          />
-          <StatCard
-            icon="✅"
-            label="With Access"
-            value={stats?.withAccess ?? 0}
-            color="bg-green-50"
-            to="/student/enrollments"
-          />
-          <StatCard
-            icon="💳"
-            label="Payments Made"
-            value={stats?.totalPayments ?? 0}
-            color="bg-purple-50"
-            to="/student/payments"
-          />
-          <StatCard
-            icon="💰"
-            label="Total Spent"
-            value={`$${stats?.totalSpent ?? '0.00'}`}
-            color="bg-amber-50"
-            to="/student/payments"
-          />
-        </div>
-
-        {/* ── Quick Links ──────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <Link
-            to="/courses"
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl
-                       p-5 transition-colors flex items-center gap-3"
-          >
-            <span className="text-2xl">🔍</span>
-            <div>
-              <div className="font-semibold">Browse Courses</div>
-              <div className="text-blue-100 text-xs mt-0.5">
-                Find your next course
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/student/enrollments"
-            className="bg-white hover:bg-gray-50 border border-gray-200
-                       text-gray-800 rounded-xl p-5 transition-colors
-                       flex items-center gap-3"
-          >
-            <span className="text-2xl">📖</span>
-            <div>
-              <div className="font-semibold">My Enrollments</div>
-              <div className="text-gray-400 text-xs mt-0.5">
-                View all your courses
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            to="/student/payments"
-            className="bg-white hover:bg-gray-50 border border-gray-200
-                       text-gray-800 rounded-xl p-5 transition-colors
-                       flex items-center gap-3"
-          >
-            <span className="text-2xl">💳</span>
-            <div>
-              <div className="font-semibold">My Payments</div>
-              <div className="text-gray-400 text-xs mt-0.5">
-                Payment history
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* ── Recent Enrollments ───────────────────────── */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-bold text-gray-900">Recent Enrollments</h2>
-            <Link
-              to="/student/enrollments"
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              View all →
-            </Link>
+        {/* ── Error ───────────────────────────────────── */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700
+                          rounded-xl px-4 py-3 text-sm mb-6">
+            {error}
           </div>
+        )}
 
-          {enrollments.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-3">📭</div>
-              <p className="text-gray-500 text-sm">
-                You haven't enrolled in any courses yet.
-              </p>
-              <Link
-                to="/courses"
-                className="inline-block mt-3 bg-blue-600 text-white px-5
-                           py-2 rounded-lg text-sm font-medium
-                           hover:bg-blue-700 transition-colors"
-              >
-                Browse Courses
-              </Link>
+        {/* ── Stats Grid ──────────────────────────────── */}
+        {stats && (
+          <>
+            {/* Users */}
+            <h2 className="text-xs font-semibold text-gray-400 uppercase
+                           tracking-wide mb-3">
+              Users
+            </h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <StatCard
+                icon="👥"
+                label="Total Users"
+                value={stats.users.total}
+                color="bg-blue-50"
+                to="/admin/users"
+              />
+              <StatCard
+                icon="🎓"
+                label="Students"
+                value={stats.users.students}
+                color="bg-green-50"
+                to="/admin/users"
+              />
+              <StatCard
+                icon="📚"
+                label="Instructors"
+                value={stats.users.instructors}
+                color="bg-purple-50"
+                to="/admin/users"
+              />
+              <StatCard
+                icon="⏳"
+                label="Pending Instructors"
+                value={stats.users.pending_instructors}
+                color="bg-amber-50"
+                sub={
+                  stats.users.pending_instructors > 0
+                    ? 'Needs approval'
+                    : 'All clear'
+                }
+                to="/admin/users"
+              />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {enrollments.map((en) => (
-                <div
-                  key={en.id}
-                  className="flex items-center gap-4 p-3 rounded-lg
-                             border border-gray-100 hover:bg-gray-50
-                             transition-colors"
-                >
-                  {/* Icon */}
-                  <div className="w-10 h-10 bg-blue-50 rounded-lg flex
-                                  items-center justify-center text-lg
-                                  flex-shrink-0">
-                    📚
-                  </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm truncate">
-                      {en.course?.title}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      by {en.course?.instructor?.name}
-                    </p>
-                  </div>
+            {/* Courses */}
+            <h2 className="text-xs font-semibold text-gray-400 uppercase
+                           tracking-wide mb-3">
+              Courses
+            </h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <StatCard
+                icon="📖"
+                label="Total Courses"
+                value={stats.courses.total}
+                color="bg-blue-50"
+              />
+              <StatCard
+                icon="✅"
+                label="Approved"
+                value={stats.courses.approved}
+                color="bg-green-50"
+              />
+              <StatCard
+                icon="🕐"
+                label="Pending Review"
+                value={stats.courses.pending}
+                color="bg-amber-50"
+                sub={
+                  stats.courses.pending > 0
+                    ? 'Action required'
+                    : 'None pending'
+                }
+                to="/admin/courses/pending"
+              />
+              <StatCard
+                icon="👨‍🎓"
+                label="Total Enrollments"
+                value={stats.enrollments}
+                color="bg-indigo-50"
+              />
+            </div>
 
-                  {/* Status */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium
-                      ${en.has_access
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-amber-100 text-amber-700'
-                      }`}>
-                      {en.has_access ? 'Access granted' : 'Pending payment'}
-                    </span>
-                    <Link
-                      to={`/courses/${en.course_id}`}
-                      className="text-xs text-blue-600 hover:text-blue-700
-                                 font-medium"
-                    >
-                      View →
-                    </Link>
+            {/* Revenue */}
+            <h2 className="text-xs font-semibold text-gray-400 uppercase
+                           tracking-wide mb-3">
+              Revenue
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-700
+                              rounded-xl p-6 text-white">
+                <div className="text-3xl font-bold mb-1">
+                  ${stats.revenue.toFixed(2)}
+                </div>
+                <div className="text-blue-100 text-sm">Total Revenue</div>
+                <div className="text-blue-200 text-xs mt-1">
+                  From completed payments
+                </div>
+              </div>
+              <Link
+                to="/admin/payments"
+                className="bg-white border border-gray-200 rounded-xl p-6
+                           hover:shadow-md transition-shadow flex items-center
+                           gap-4"
+              >
+                <div className="w-12 h-12 bg-green-50 rounded-xl flex
+                                items-center justify-center text-2xl">
+                  💳
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">
+                    View All Payments
+                  </div>
+                  <div className="text-sm text-gray-400 mt-0.5">
+                    Transaction history
                   </div>
                 </div>
-              ))}
+              </Link>
             </div>
-          )}
+          </>
+        )}
+
+        {/* ── Quick Actions ────────────────────────────── */}
+        <h2 className="text-xs font-semibold text-gray-400 uppercase
+                       tracking-wide mb-3">
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            {
+              icon: '⏳',
+              title: 'Pending Instructors',
+              desc: 'Review and approve instructor applications',
+              to: '/admin/users',
+              color: 'bg-amber-50 border-amber-200',
+              textColor: 'text-amber-700',
+            },
+            {
+              icon: '📋',
+              title: 'Pending Courses',
+              desc: 'Review and approve submitted courses',
+              to: '/admin/courses/pending',
+              color: 'bg-blue-50 border-blue-200',
+              textColor: 'text-blue-700',
+            },
+            {
+              icon: '👥',
+              title: 'Manage Users',
+              desc: 'View, search and manage all users',
+              to: '/admin/users',
+              color: 'bg-purple-50 border-purple-200',
+              textColor: 'text-purple-700',
+            },
+            {
+              icon: '💳',
+              title: 'All Payments',
+              desc: 'View all payment transactions',
+              to: '/admin/payments',
+              color: 'bg-green-50 border-green-200',
+              textColor: 'text-green-700',
+            },
+            {
+              icon: '🌐',
+              title: 'Browse Courses',
+              desc: 'View the public course catalog',
+              to: '/courses',
+              color: 'bg-gray-50 border-gray-200',
+              textColor: 'text-gray-700',
+            },
+          ].map((action) => (
+            <Link
+              key={action.to + action.title}
+              to={action.to}
+              className={`rounded-xl border p-5 hover:shadow-md
+                          transition-shadow ${action.color}`}
+            >
+              <div className="text-2xl mb-3">{action.icon}</div>
+              <div className={`font-semibold mb-1 ${action.textColor}`}>
+                {action.title}
+              </div>
+              <div className="text-xs text-gray-500">{action.desc}</div>
+            </Link>
+          ))}
         </div>
 
       </div>
@@ -242,4 +271,4 @@ const StudentDashboard = () => {
   );
 };
 
-export default StudentDashboard;
+export default AdminDashboard;
