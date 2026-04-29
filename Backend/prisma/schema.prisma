@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  admin
+  instructor
+  student
+}
+
+enum CourseStatus {
+  pending    // waiting for admin approval
+  approved   // live and visible
+  rejected   // admin rejected it
+}
+
+enum EnrollmentStatus {
+  active
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+
+model User {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(100)
+  email       String    @unique @db.VarChar(150)
+  password    String
+  role        Role      @default(student)
+  is_approved Boolean   @default(false)
+  created_at  DateTime  @default(now())
+
+  // Relations
+  courses     Course[]      // instructor creates courses
+  enrollments Enrollment[]  // student enrolls in courses
+  ratings     Rating[]      // student rates courses
+  payments    Payment[]     // student makes payments
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY
+// ─────────────────────────────────────────────
+
+model Category {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique @db.VarChar(100)
+  created_at DateTime @default(now())
+
+  // Relations
+  courses    Course[]
+
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────────
+// COURSE
+// ─────────────────────────────────────────────
+
+model Course {
+  id            Int          @id @default(autoincrement())
+  title         String       @db.VarChar(200)
+  description   String
+  price         Decimal      @default(0.00) @db.Decimal(10, 2)
+  is_free       Boolean      @default(false)
+  duration      Int          // in minutes
+  video_url     String?      // local path or filename
+  thumbnail_url String?      // course cover image
+  status        CourseStatus @default(pending)
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+
+  // Foreign Keys
+  instructor_id Int
+  category_id   Int
+
+  // Relations
+  instructor    User         @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
+  category      Category     @relation(fields: [category_id], references: [id])
+  enrollments   Enrollment[]
+  ratings       Rating[]
+  payment       Payment[]
+
+  @@map("courses")
+}
+
+// ─────────────────────────────────────────────
+// ENROLLMENT
+// ─────────────────────────────────────────────
+
+model Enrollment {
+  id          Int              @id @default(autoincrement())
+  status      EnrollmentStatus @default(active)
+  enrolled_at DateTime         @default(now())
+
+  // Foreign Keys
+  student_id  Int
+  course_id   Int
+
+  // Relations
+  student     User    @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course      Course  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  // One student can only enroll once per course
+  @@unique([student_id, course_id])
+  @@map("enrollments")
+}
+
+// ─────────────────────────────────────────────
+// PAYMENT (fake system - access control only)
+// ─────────────────────────────────────────────
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  amount         Decimal       @db.Decimal(10, 2)
+  status         PaymentStatus @default(pending)
+  access_granted Boolean       @default(false)
+  created_at     DateTime      @default(now())
+
+  // Foreign Keys
+  student_id     Int
+  course_id      Int
+
+  // Relations
+  student        User   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course         Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// RATING
+// ─────────────────────────────────────────────
+
+model Rating {
+  id         Int      @id @default(autoincrement())
+  stars      Int      // 1 to 5 only
+  review     String?  // optional text
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Foreign Keys
+  student_id Int
+  course_id  Int
+
+  // Relations
+  student    User   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course     Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  // One rating per student per course
+  @@unique([student_id, course_id])
+  @@map("ratings")
+}
