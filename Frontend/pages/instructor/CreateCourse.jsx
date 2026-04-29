@@ -1,274 +1,188 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
-import useAuth from '../../hooks/useAuth';
 
-const StatCard = ({ icon, label, value, sub, color, to }) => {
-  const content = (
-    <div className="bg-white rounded-xl border border-gray-200 p-5
-                    hover:shadow-md transition-shadow">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center
-                       text-xl mb-3 ${color}`}>
-        {icon}
-      </div>
-      <div className="text-2xl font-bold text-gray-900 mb-0.5">{value}</div>
-      <div className="text-sm text-gray-500">{label}</div>
-      {sub && (
-        <div className="text-xs text-gray-400 mt-1">{sub}</div>
-      )}
-    </div>
-  );
-  return to ? (
-    <Link to={to} className="block">{content}</Link>
-  ) : content;
-};
-
-const AdminDashboard = () => {
-  const { user } = useAuth();
-  const [stats,   setStats]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState('');
+const CreateCourse = () => {
+  const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [form, setForm] = useState({
+    title: '', description: '', category_id: '',
+    duration: '', price: '', is_free: false,
+  });
+  const [thumbnail, setThumbnail] = useState(null);
+  const [video,     setVideo]     = useState(null);
+  const [error,     setError]     = useState('');
+  const [loading,   setLoading]   = useState(false);
+  const [success,   setSuccess]   = useState('');
 
   useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      setError('');
+    const fetchCategories = async () => {
       try {
-        const res = await api.get('/admin/stats');
-        setStats(res.data.stats);
-      } catch {
-        setError('Failed to load dashboard stats.');
-      } finally {
-        setLoading(false);
-      }
+        const res = await api.get('/categories');
+        setCategories(res.data.categories || []);
+      } catch { }
     };
-    fetchStats();
+    fetchCategories();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-red-600 border-t-transparent
-                        rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+    setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const courseRes = await api.post('/courses', {
+        title:       form.title,
+        description: form.description,
+        category_id: parseInt(form.category_id),
+        duration:    parseInt(form.duration),
+        price:       form.is_free ? 0 : parseFloat(form.price),
+        is_free:     form.is_free,
+      });
+      const courseId = courseRes.data.course.id;
+
+      if (thumbnail) {
+        const thumbData = new FormData();
+        thumbData.append('thumbnail', thumbnail);
+        await api.post(`/courses/${courseId}/thumbnail`, thumbData,
+          { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+      if (video) {
+        const videoData = new FormData();
+        videoData.append('video', video);
+        await api.post(`/courses/${courseId}/video`, videoData,
+          { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+
+      setSuccess('Course created! Waiting for admin approval.');
+      setTimeout(() => navigate('/instructor/courses'), 2000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create course.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {/* ── Header ──────────────────────────────────── */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-1">
-            <span className="bg-red-100 text-red-700 text-xs font-semibold
-                             px-2.5 py-1 rounded-full">
-              ADMIN
-            </span>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Admin Dashboard
-            </h1>
+        <div className="flex items-center gap-4 mb-8">
+          <Link to="/instructor/courses" className="text-gray-400 hover:text-gray-600 transition-colors text-xl">←</Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Create Course</h1>
+            <p className="text-gray-500 text-sm mt-0.5">Fill in the details below</p>
           </div>
-          <p className="text-gray-500 text-sm">
-            Welcome back, {user?.name} — System overview
-          </p>
         </div>
 
-        {/* ── Error ───────────────────────────────────── */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700
-                          rounded-xl px-4 py-3 text-sm mb-6">
-            {error}
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-6">{error}</div>
+        )}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm mb-6">{success}</div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+            <h2 className="font-semibold text-gray-900">Basic Information</h2>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Course Title *</label>
+              <input type="text" name="title" value={form.title} onChange={handleChange} required
+                placeholder="e.g. Complete React.js Course"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Description *</label>
+              <textarea name="description" value={form.description} onChange={handleChange} required rows={4}
+                placeholder="Describe what students will learn..."
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Category *</label>
+                <select name="category_id" value={form.category_id} onChange={handleChange} required
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                  <option value="">Select a category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Duration (minutes) *</label>
+                <input type="number" name="duration" value={form.duration} onChange={handleChange} required min={1}
+                  placeholder="e.g. 120"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* ── Stats Grid ──────────────────────────────── */}
-        {stats && (
-          <>
-            {/* Users */}
-            <h2 className="text-xs font-semibold text-gray-400 uppercase
-                           tracking-wide mb-3">
-              Users
-            </h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard
-                icon="👥"
-                label="Total Users"
-                value={stats.users.total}
-                color="bg-blue-50"
-                to="/admin/users"
-              />
-              <StatCard
-                icon="🎓"
-                label="Students"
-                value={stats.users.students}
-                color="bg-green-50"
-                to="/admin/users"
-              />
-              <StatCard
-                icon="📚"
-                label="Instructors"
-                value={stats.users.instructors}
-                color="bg-purple-50"
-                to="/admin/users"
-              />
-              <StatCard
-                icon="⏳"
-                label="Pending Instructors"
-                value={stats.users.pending_instructors}
-                color="bg-amber-50"
-                sub={
-                  stats.users.pending_instructors > 0
-                    ? 'Needs approval'
-                    : 'All clear'
-                }
-                to="/admin/users"
-              />
-            </div>
-
-            {/* Courses */}
-            <h2 className="text-xs font-semibold text-gray-400 uppercase
-                           tracking-wide mb-3">
-              Courses
-            </h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard
-                icon="📖"
-                label="Total Courses"
-                value={stats.courses.total}
-                color="bg-blue-50"
-              />
-              <StatCard
-                icon="✅"
-                label="Approved"
-                value={stats.courses.approved}
-                color="bg-green-50"
-              />
-              <StatCard
-                icon="🕐"
-                label="Pending Review"
-                value={stats.courses.pending}
-                color="bg-amber-50"
-                sub={
-                  stats.courses.pending > 0
-                    ? 'Action required'
-                    : 'None pending'
-                }
-                to="/admin/courses/pending"
-              />
-              <StatCard
-                icon="👨‍🎓"
-                label="Total Enrollments"
-                value={stats.enrollments}
-                color="bg-indigo-50"
-              />
-            </div>
-
-            {/* Revenue */}
-            <h2 className="text-xs font-semibold text-gray-400 uppercase
-                           tracking-wide mb-3">
-              Revenue
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700
-                              rounded-xl p-6 text-white">
-                <div className="text-3xl font-bold mb-1">
-                  ${stats.revenue.toFixed(2)}
-                </div>
-                <div className="text-blue-100 text-sm">Total Revenue</div>
-                <div className="text-blue-200 text-xs mt-1">
-                  From completed payments
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <h2 className="font-semibold text-gray-900">Pricing</h2>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div className="relative">
+                <input type="checkbox" name="is_free" checked={form.is_free} onChange={handleChange} className="sr-only" />
+                <div className={`w-10 h-6 rounded-full transition-colors ${form.is_free ? 'bg-green-500' : 'bg-gray-300'}`}>
+                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${form.is_free ? 'translate-x-5' : 'translate-x-1'}`} />
                 </div>
               </div>
-              <Link
-                to="/admin/payments"
-                className="bg-white border border-gray-200 rounded-xl p-6
-                           hover:shadow-md transition-shadow flex items-center
-                           gap-4"
-              >
-                <div className="w-12 h-12 bg-green-50 rounded-xl flex
-                                items-center justify-center text-2xl">
-                  💳
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    View All Payments
-                  </div>
-                  <div className="text-sm text-gray-400 mt-0.5">
-                    Transaction history
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </>
-        )}
-
-        {/* ── Quick Actions ────────────────────────────── */}
-        <h2 className="text-xs font-semibold text-gray-400 uppercase
-                       tracking-wide mb-3">
-          Quick Actions
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[
-            {
-              icon: '⏳',
-              title: 'Pending Instructors',
-              desc: 'Review and approve instructor applications',
-              to: '/admin/users',
-              color: 'bg-amber-50 border-amber-200',
-              textColor: 'text-amber-700',
-            },
-            {
-              icon: '📋',
-              title: 'Pending Courses',
-              desc: 'Review and approve submitted courses',
-              to: '/admin/courses/pending',
-              color: 'bg-blue-50 border-blue-200',
-              textColor: 'text-blue-700',
-            },
-            {
-              icon: '👥',
-              title: 'Manage Users',
-              desc: 'View, search and manage all users',
-              to: '/admin/users',
-              color: 'bg-purple-50 border-purple-200',
-              textColor: 'text-purple-700',
-            },
-            {
-              icon: '💳',
-              title: 'All Payments',
-              desc: 'View all payment transactions',
-              to: '/admin/payments',
-              color: 'bg-green-50 border-green-200',
-              textColor: 'text-green-700',
-            },
-            {
-              icon: '🌐',
-              title: 'Browse Courses',
-              desc: 'View the public course catalog',
-              to: '/courses',
-              color: 'bg-gray-50 border-gray-200',
-              textColor: 'text-gray-700',
-            },
-          ].map((action) => (
-            <Link
-              key={action.to + action.title}
-              to={action.to}
-              className={`rounded-xl border p-5 hover:shadow-md
-                          transition-shadow ${action.color}`}
-            >
-              <div className="text-2xl mb-3">{action.icon}</div>
-              <div className={`font-semibold mb-1 ${action.textColor}`}>
-                {action.title}
+              <span className="text-sm font-medium text-gray-700">This is a free course</span>
+            </label>
+            {!form.is_free && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (USD) *</label>
+                <input type="number" name="price" value={form.price} onChange={handleChange}
+                  required={!form.is_free} min={0.01} step={0.01} placeholder="e.g. 29.99"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-              <div className="text-xs text-gray-500">{action.desc}</div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <h2 className="font-semibold text-gray-900">Media (Optional)</h2>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Thumbnail Image</label>
+              <input type="file" accept="image/*" onChange={(e) => setThumbnail(e.target.files[0])}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Course Video</label>
+              <input type="file" accept="video/*" onChange={(e) => setVideo(e.target.files[0])}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100" />
+              <p className="text-xs text-gray-400 mt-1">Supported: MP4, WebM, MOV</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            <Link to="/instructor/courses"
+              className="px-5 py-2.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl font-medium transition-colors">
+              Cancel
             </Link>
-          ))}
-        </div>
+            <button type="submit" disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Creating...
+                </>
+              ) : 'Create Course'}
+            </button>
+          </div>
 
+        </form>
       </div>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default CreateCourse;
