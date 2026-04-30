@@ -207,22 +207,36 @@ const getSingleCourse = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Only public can see approved courses
-    // Admin/instructor can see their own pending ones
+    // ── Access control for non-approved courses ─────────
     if (course.status !== 'approved') {
       const user = req.user;
-      if (
-        !user ||
-        (user.role === 'student') ||
-        (user.role === 'instructor' && course.instructor_id !== user.id)
+
+      // Guest (not logged in) → block
+      if (!user) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+
+      // Admin → always allow
+      if (user.role === 'admin') {
+        // pass through
+      }
+      // Instructor → only their OWN course
+      else if (
+        user.role === 'instructor' &&
+        course.instructor_id === user.id
       ) {
+        // pass through
+      }
+      // Everyone else → block
+      else {
         return res.status(404).json({ message: 'Course not found' });
       }
     }
 
-    // ── Calculate average rating ───────────────────────
+    // ── Calculate average rating ────────────────────────
     const avgRating = course.ratings.length > 0
-      ? course.ratings.reduce((sum, r) => sum + r.stars, 0) / course.ratings.length
+      ? course.ratings.reduce((sum, r) => sum + r.stars, 0) /
+        course.ratings.length
       : 0;
 
     return res.status(200).json({
