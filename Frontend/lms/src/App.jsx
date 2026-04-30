@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import Navbar from './components/Navbar';
+import Layout from './components/Layout';
 import RoleRoute from './components/RoleRoute';
 
 // Public
@@ -31,83 +31,60 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Navbar />
+        <Layout>
           <Routes>
 
-            {/* ── PUBLIC ──────────────────────────────── */}
+            {/* PUBLIC */}
             <Route path="/"            element={<HomePage />} />
             <Route path="/login"       element={<LoginPage />} />
             <Route path="/register"    element={<RegisterPage />} />
             <Route path="/courses"     element={<CoursesPage />} />
             <Route path="/courses/:id" element={<CourseDetailPage />} />
 
-            {/* ── STUDENT ─────────────────────────────── */}
+            {/* STUDENT */}
             <Route path="/student/dashboard" element={
-              <RoleRoute roles={['student']}>
-                <StudentDashboard />
-              </RoleRoute>
+              <RoleRoute roles={['student']}><StudentDashboard /></RoleRoute>
             }/>
             <Route path="/student/enrollments" element={
-              <RoleRoute roles={['student']}>
-                <MyEnrollments />
-              </RoleRoute>
+              <RoleRoute roles={['student']}><MyEnrollments /></RoleRoute>
             }/>
             <Route path="/student/payments" element={
-              <RoleRoute roles={['student']}>
-                <MyPayments />
-              </RoleRoute>
+              <RoleRoute roles={['student']}><MyPayments /></RoleRoute>
             }/>
 
-            {/* ── INSTRUCTOR ──────────────────────────── */}
+            {/* INSTRUCTOR */}
             <Route path="/instructor/dashboard" element={
-              <RoleRoute roles={['instructor']}>
-                <InstructorDashboard />
-              </RoleRoute>
+              <RoleRoute roles={['instructor']}><InstructorDashboard /></RoleRoute>
             }/>
             <Route path="/instructor/courses" element={
-              <RoleRoute roles={['instructor']}>
-                <MyCourses />
-              </RoleRoute>
+              <RoleRoute roles={['instructor']}><MyCourses /></RoleRoute>
             }/>
             <Route path="/instructor/courses/create" element={
-              <RoleRoute roles={['instructor']}>
-                <CreateCourse />
-              </RoleRoute>
+              <RoleRoute roles={['instructor']}><CreateCourse /></RoleRoute>
             }/>
             <Route path="/instructor/courses/edit/:id" element={
-              <RoleRoute roles={['instructor']}>
-                <EditCourse />
-              </RoleRoute>
+              <RoleRoute roles={['instructor']}><EditCourse /></RoleRoute>
             }/>
 
-            {/* ── ADMIN ───────────────────────────────── */}
+            {/* ADMIN */}
             <Route path="/admin/dashboard" element={
-              <RoleRoute roles={['admin']}>
-                <AdminDashboard />
-              </RoleRoute>
+              <RoleRoute roles={['admin']}><AdminDashboard /></RoleRoute>
             }/>
             <Route path="/admin/users" element={
-              <RoleRoute roles={['admin']}>
-                <ManageUsers />
-              </RoleRoute>
+              <RoleRoute roles={['admin']}><ManageUsers /></RoleRoute>
             }/>
             <Route path="/admin/courses/pending" element={
-              <RoleRoute roles={['admin']}>
-                <PendingCourses />
-              </RoleRoute>
+              <RoleRoute roles={['admin']}><PendingCourses /></RoleRoute>
             }/>
             <Route path="/admin/payments" element={
-              <RoleRoute roles={['admin']}>
-                <ManagePayments />
-              </RoleRoute>
+              <RoleRoute roles={['admin']}><ManagePayments /></RoleRoute>
             }/>
 
-            {/* ── FALLBACK ────────────────────────────── */}
+            {/* FALLBACK */}
             <Route path="*" element={<Navigate to="/" replace />} />
 
           </Routes>
-        </div>
+        </Layout>
       </AuthProvider>
     </BrowserRouter>
   );

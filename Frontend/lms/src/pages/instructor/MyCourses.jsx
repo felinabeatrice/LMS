@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const MyCourses = () => {
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [deleting, setDeleting] = useState(null);
+  const [courses,  setCourses]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Modal state
+  const [modal, setModal] = useState({
+    open: false,
+    courseId: null,
+    courseTitle: '',
+  });
 
   useEffect(() => { fetchCourses(); }, []);
 
@@ -22,69 +30,88 @@ const MyCourses = () => {
     }
   };
 
-  const handleDelete = async (courseId) => {
-    if (!window.confirm('Delete this course?')) return;
-    setDeleting(courseId);
+  const openDeleteModal = (course) => {
+    setModal({ open: true, courseId: course.id, courseTitle: course.title });
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
     try {
-      await api.delete(`/courses/${courseId}`);
-      setCourses((prev) => prev.filter((c) => c.id !== courseId));
+      await api.delete(`/courses/${modal.courseId}`);
+      setCourses((prev) => prev.filter((c) => c.id !== modal.courseId));
+      setModal({ open: false, courseId: null, courseTitle: '' });
     } catch (err) {
       alert(err.response?.data?.message || 'Delete failed.');
     } finally {
-      setDeleting(null);
+      setDeleting(false);
     }
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="flex items-center justify-center py-16">
       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-5xl mx-auto">
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Courses</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {courses.length} course{courses.length !== 1 ? 's' : ''} created
-            </p>
-          </div>
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={modal.open}
+        onClose={() => setModal({ open: false, courseId: null, courseTitle: '' })}
+        onConfirm={handleDelete}
+        title="Delete Course"
+        message={`Are you sure you want to delete "${modal.courseTitle}"? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        confirmColor="red"
+        loading={deleting}
+      />
+
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Courses</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {courses.length} course{courses.length !== 1 ? 's' : ''} created
+          </p>
+        </div>
+        <Link
+          to="/instructor/courses/create"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5
+                     rounded-xl text-sm font-semibold transition-colors"
+        >
+          + Create Course
+        </Link>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700
+                        rounded-xl px-4 py-3 text-sm mb-6">
+          {error}
+        </div>
+      )}
+
+      {courses.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <div className="text-5xl mb-4">📭</div>
+          <h3 className="font-semibold text-gray-700 mb-2">No courses yet</h3>
           <Link
             to="/instructor/courses/create"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+            className="inline-block bg-blue-600 text-white px-6 py-2.5
+                       rounded-xl text-sm font-medium hover:bg-blue-700"
           >
-            + Create Course
+            Create Your First Course
           </Link>
         </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-6">
-            {error}
-          </div>
-        )}
-
-        {courses.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <div className="text-5xl mb-4">📭</div>
-            <h3 className="font-semibold text-gray-700 mb-2">No courses yet</h3>
-            <Link
-              to="/instructor/courses/create"
-              className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              Create Your First Course
-            </Link>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Course</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Category</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Students</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Category</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">Students</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -98,15 +125,17 @@ const MyCourses = () => {
                         {course.is_free ? 'Free' : `$${parseFloat(course.price).toFixed(2)}`}
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{course.category?.name}</td>
-                    <td className="px-5 py-4 text-sm font-medium text-gray-800">
+                    <td className="px-5 py-4 text-sm text-gray-600 hidden md:table-cell">
+                      {course.category?.name}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-medium text-gray-800 hidden sm:table-cell">
                       {course._count?.enrollments || 0}
                     </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
                         ${course.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          course.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                          'bg-red-100 text-red-700'}`}>
+                          course.status === 'pending'  ? 'bg-amber-100  text-amber-700' :
+                                                         'bg-red-100    text-red-700'}`}>
                         {course.status}
                       </span>
                     </td>
@@ -114,16 +143,17 @@ const MyCourses = () => {
                       <div className="flex items-center gap-2">
                         <Link
                           to={`/instructor/courses/edit/${course.id}`}
-                          className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg font-medium hover:bg-blue-100 transition-colors"
+                          className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5
+                                     rounded-lg font-medium hover:bg-blue-100"
                         >
                           Edit
                         </Link>
                         <button
-                          onClick={() => handleDelete(course.id)}
-                          disabled={deleting === course.id}
-                          className="text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg font-medium hover:bg-red-100 disabled:opacity-50 transition-colors"
+                          onClick={() => openDeleteModal(course)}
+                          className="text-xs bg-red-50 text-red-700 px-3 py-1.5
+                                     rounded-lg font-medium hover:bg-red-100"
                         >
-                          {deleting === course.id ? '...' : 'Delete'}
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -132,8 +162,8 @@ const MyCourses = () => {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

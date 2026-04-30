@@ -12,26 +12,29 @@ const {
   updateCourseStatus,
 } = require('../controllers/courseController');
 
-const { protect, authorize } = require('../middleware/authMiddleware');
+const {
+  protect,
+  authorize,
+  optionalProtect,
+} = require('../middleware/authMiddleware');
 
-// ─── PUBLIC ROUTES ────────────────────────────────────────
+// ─── PUBLIC ───────────────────────────────────────────────
 router.get('/', getAllCourses);
 
-// ─── PROTECTED ROUTES ─────────────────────────────────────
-
-// Admin only
+// ─── ADMIN ONLY ───────────────────────────────────────────
 router.get('/pending', protect, authorize('admin'), getPendingCourses);
 router.patch('/:id/status', protect, authorize('admin'), updateCourseStatus);
 
-// Instructor only
+// ─── INSTRUCTOR ONLY ──────────────────────────────────────
 router.post('/', protect, authorize('instructor'), createCourse);
 router.get('/my-courses', protect, authorize('instructor'), getMyCourses);
 
-// Instructor (own) or Admin
+// ─── INSTRUCTOR (OWN) OR ADMIN ────────────────────────────
 router.put('/:id', protect, authorize('instructor', 'admin'), updateCourse);
 router.delete('/:id', protect, authorize('instructor', 'admin'), deleteCourse);
 
-// Public - but needs optional auth for status check
-router.get('/:id', getSingleCourse);
+// ─── SINGLE COURSE — optionalProtect so instructor/admin
+//     can see their own pending/rejected courses ──────────
+router.get('/:id', optionalProtect, getSingleCourse);
 
 module.exports = router;
