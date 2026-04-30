@@ -1,94 +1,29 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Sidebar from './Sidebar';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, BookOpen, LogOut, LayoutDashboard } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
+import Sidebar from './Sidebar';
 
-const Layout = ({ children }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const navigate   = useNavigate();
-  const location   = useLocation();
-  const { user }   = useAuth();
+const BackButton = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Public routes — no sidebar
-  const publicRoutes = ['/', '/login', '/register', '/courses'];
-  const isPublic = publicRoutes.includes(location.pathname) ||
-    location.pathname.startsWith('/courses/');
-
-  // Not logged in — always public layout
-  if (!user || isPublic) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Top Navbar for public pages */}
-        <PublicNavbar />
-        <main>{children}</main>
-      </div>
-    );
-  }
-
-  // Logged in — sidebar layout
-  return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-
-      {/* Sidebar */}
-      <Sidebar
-        mobileOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-      />
-
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-
-        {/* Mobile top bar */}
-        <header className="lg:hidden bg-white border-b border-gray-200
-                           px-4 py-3 flex items-center gap-3 flex-shrink-0">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg
-                       bg-gray-100 hover:bg-gray-200 text-gray-700
-                       transition-colors"
-          >
-            ☰
-          </button>
-          <span className="font-bold text-gray-900">
-            Learn<span className="text-blue-600">Hub</span>
-          </span>
-        </header>
-
-        {/* Scrollable page content */}
-        <main className="flex-1 overflow-y-auto">
-          {/* Back button + page content */}
-          <div className="p-4 sm:p-6 lg:p-8">
-            {/* Back button on every page */}
-            <BackBtn />
-            {children}
-          </div>
-        </main>
-
-      </div>
-    </div>
-  );
-};
-
-// ── Back button shown on every authenticated page ──────────
-const BackBtn = () => {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-
-  // Don't show on dashboard home pages
   const noBtnRoutes = [
     '/admin/dashboard',
     '/instructor/dashboard',
     '/student/dashboard',
   ];
+
   if (noBtnRoutes.includes(location.pathname)) return null;
 
   return (
     <button
       onClick={() => navigate(-1)}
-      className="inline-flex items-center gap-2 text-sm text-gray-500
-                 hover:text-blue-600 transition-colors font-medium mb-4"
+      className="inline-flex items-center gap-1.5 text-sm text-gray-500
+                 hover:text-blue-600 transition-colors font-medium mb-5"
     >
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4" fill="none" stroke="currentColor"
+        viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M15 19l-7-7 7-7" />
       </svg>
@@ -97,10 +32,13 @@ const BackBtn = () => {
   );
 };
 
-// ── Public top navbar ──────────────────────────────────────
 const PublicNavbar = () => {
   const { user, logout, isAdmin, isInstructor, isStudent } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const isHomePage = location.pathname === '/';
 
   const handleLogout = () => {
     logout();
@@ -114,70 +52,236 @@ const PublicNavbar = () => {
     return '/';
   };
 
+  const scrollTo = (id) => {
+    setMenuOpen(false);
+    if (!isHomePage) {
+      navigate('/');
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const navLinks = [
+    { label: 'Services',  id: 'services'  },
+    { label: 'How It Works', id: 'how-it-works' },
+    { label: 'FAQ',       id: 'faq'       },
+    { label: 'Contact',   id: 'contact'   },
+    { label: 'About',     id: 'about'     },
+  ];
+
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-30">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
 
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center
-                            justify-center">
-              <span className="text-white font-bold text-sm">L</span>
+                            justify-center shadow-sm">
+              <BookOpen size={16} className="text-white" />
             </div>
             <span className="text-xl font-bold text-gray-900">
               Learn<span className="text-blue-600">Hub</span>
             </span>
-          </a>
+          </Link>
 
-          {/* Links */}
-          <div className="hidden md:flex items-center gap-6">
-            <a href="/courses"
-              className="text-gray-600 hover:text-blue-600 font-medium text-sm">
-              Browse Courses
-            </a>
-            {user && (
-              <a href={getDashboardLink()}
-                className="text-gray-600 hover:text-blue-600 font-medium text-sm">
-                Dashboard
-              </a>
-            )}
+          {/* Desktop center links */}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => scrollTo(link.id)}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-blue-600
+                           hover:bg-blue-50 rounded-lg font-medium transition-colors"
+              >
+                {link.label}
+              </button>
+            ))}
+            <Link
+              to="/courses"
+              className="px-3 py-2 text-sm text-gray-600 hover:text-blue-600
+                         hover:bg-blue-50 rounded-lg font-medium transition-colors"
+            >
+              Courses
+            </Link>
           </div>
 
-          {/* Right */}
+          {/* Right side */}
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                <span className="text-gray-700 font-medium text-sm hidden md:block">
-                  {user.name}
-                </span>
+                <Link
+                  to={getDashboardLink()}
+                  className="hidden sm:flex items-center gap-1.5 text-sm
+                             text-gray-700 hover:text-blue-600 font-medium
+                             transition-colors"
+                >
+                  <LayoutDashboard size={15} />
+                  Dashboard
+                </Link>
                 <button
                   onClick={handleLogout}
-                  className="bg-gray-100 hover:bg-red-50 hover:text-red-600
-                             text-gray-700 px-3 py-1.5 rounded-lg font-medium
-                             text-sm transition-colors border border-gray-200"
+                  className="hidden sm:flex items-center gap-1.5 bg-gray-100
+                             hover:bg-red-50 hover:text-red-600 text-gray-700
+                             px-3 py-1.5 rounded-lg font-medium text-sm
+                             transition-colors border border-gray-200"
                 >
+                  <LogOut size={15} />
                   Logout
                 </button>
               </>
             ) : (
               <>
-                <a href="/login"
-                  className="text-gray-700 hover:text-blue-600 font-medium text-sm">
+                <Link to="/login"
+                  className="hidden sm:block text-gray-700 hover:text-blue-600
+                             font-medium text-sm transition-colors">
                   Login
-                </a>
-                <a href="/register"
+                </Link>
+                <Link to="/register"
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2
                              rounded-lg font-medium text-sm transition-colors">
                   Get Started
-                </a>
+                </Link>
               </>
             )}
-          </div>
 
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="md:hidden w-9 h-9 flex items-center justify-center
+                         rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              <Menu size={18} className="text-gray-700" />
+            </button>
+          </div>
         </div>
+
+        {/* Mobile menu */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-gray-100 py-3 space-y-1">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => scrollTo(link.id)}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-600
+                           hover:text-blue-600 hover:bg-blue-50 rounded-lg
+                           font-medium transition-colors"
+              >
+                {link.label}
+              </button>
+            ))}
+            <Link
+              to="/courses"
+              onClick={() => setMenuOpen(false)}
+              className="block px-4 py-2.5 text-sm text-gray-600
+                         hover:text-blue-600 hover:bg-blue-50 rounded-lg
+                         font-medium transition-colors"
+            >
+              Courses
+            </Link>
+            <div className="pt-2 border-t border-gray-100 mt-2">
+              {user ? (
+                <>
+                  <Link
+                    to={getDashboardLink()}
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-gray-700
+                               hover:bg-gray-50 rounded-lg font-medium"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-600
+                               hover:bg-red-50 rounded-lg font-medium"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-gray-700
+                               hover:bg-gray-50 rounded-lg font-medium"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-blue-600
+                               hover:bg-blue-50 rounded-lg font-medium"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
+  );
+};
+
+const Layout = ({ children }) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const { user }  = useAuth();
+
+  const publicPaths = ['/', '/login', '/register', '/courses'];
+  const isPublicRoute =
+    publicPaths.includes(location.pathname) ||
+    location.pathname.startsWith('/courses/');
+
+  if (!user || isPublicRoute) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <PublicNavbar />
+        <main>{children}</main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+      />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="lg:hidden bg-white border-b border-gray-200
+                           px-4 py-3 flex items-center gap-3 flex-shrink-0 shadow-sm">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-lg
+                       bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+          >
+            <Menu size={18} />
+          </button>
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center
+                            justify-center">
+              <BookOpen size={14} className="text-white" />
+            </div>
+            <span className="font-bold text-gray-900 text-base">
+              Learn<span className="text-blue-600">Hub</span>
+            </span>
+          </Link>
+        </header>
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+            <BackButton />
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
   );
 };
 

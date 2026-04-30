@@ -1,47 +1,57 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import {
+  Star, Clock, Users, BookOpen, Lock, Play,
+  CheckCircle, ChevronDown, ChevronUp, AlertCircle,
+} from 'lucide-react';
 import api from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
 
-// ── Stars display ──────────────────────────────────────────
-const Stars = ({ rating, interactive = false, onRate }) => (
+// ── Star display ───────────────────────────────────────────
+const Stars = ({ rating, interactive = false, onRate, size = 'sm' }) => (
   <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((star) => (
-      <span
+      <Star
         key={star}
+        size={size === 'lg' ? 22 : 16}
         onClick={() => interactive && onRate && onRate(star)}
-        className={`text-xl ${interactive ? 'cursor-pointer' : ''}
-          ${star <= Math.round(rating) ? 'text-yellow-400' : 'text-gray-200'}`}
-      >
-        ★
-      </span>
+        className={`
+          ${interactive ? 'cursor-pointer' : ''}
+          ${star <= Math.round(rating)
+            ? 'text-amber-400 fill-amber-400'
+            : 'text-gray-200 fill-gray-200'}
+          ${interactive ? 'hover:text-amber-400 hover:fill-amber-400' : ''}
+        `}
+      />
     ))}
   </div>
 );
 
 const CourseDetailPage = () => {
-  const { id }     = useParams();
-  const navigate   = useNavigate();
+  const { id }   = useParams();
+  const navigate = useNavigate();
   const { user, isStudent } = useAuth();
+  const videoRef = useRef(null);
 
   const [course,     setCourse]     = useState(null);
   const [enrollment, setEnrollment] = useState(null);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
 
-  // Enroll/Pay state
+  // Actions
   const [enrolling,  setEnrolling]  = useState(false);
   const [paying,     setPaying]     = useState(false);
   const [actionMsg,  setActionMsg]  = useState('');
   const [actionErr,  setActionErr]  = useState('');
 
-  // Rating state
+  // Rating
   const [myRating,   setMyRating]   = useState(null);
   const [ratingForm, setRatingForm] = useState({ stars: 0, review: '' });
   const [ratingMsg,  setRatingMsg]  = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showRatingForm, setShowRatingForm] = useState(false);
 
-  // ── Fetch course ───────────────────────────────────────
+  // Fetch course
   useEffect(() => {
     const fetchCourse = async () => {
       setLoading(true);
@@ -57,26 +67,24 @@ const CourseDetailPage = () => {
     fetchCourse();
   }, [id]);
 
-  // ── Check enrollment if logged in student ─────────────
+  // Check enrollment
   useEffect(() => {
     if (!user || !isStudent) return;
     const checkEnrollment = async () => {
       try {
         const res = await api.get(`/enrollments/check/${id}`);
         setEnrollment(res.data);
-      } catch {
-        // not enrolled
-      }
+      } catch { }
     };
     checkEnrollment();
   }, [id, user, isStudent]);
 
-  // ── Check existing rating ──────────────────────────────
+  // Check existing rating
   useEffect(() => {
     if (!user || !isStudent) return;
     const fetchMyRating = async () => {
       try {
-        const res = await api.get('/ratings/my-ratings');
+        const res   = await api.get('/ratings/my-ratings');
         const found = res.data.ratings.find(
           (r) => r.course_id === parseInt(id)
         );
@@ -84,14 +92,11 @@ const CourseDetailPage = () => {
           setMyRating(found);
           setRatingForm({ stars: found.stars, review: found.review || '' });
         }
-      } catch {
-        // no ratings yet
-      }
+      } catch { }
     };
     fetchMyRating();
   }, [id, user, isStudent]);
 
-  // ── Enroll ─────────────────────────────────────────────
   const handleEnroll = async () => {
     if (!user) { navigate('/login'); return; }
     setEnrolling(true);
@@ -100,7 +105,6 @@ const CourseDetailPage = () => {
     try {
       const res = await api.post('/enrollments', { course_id: id });
       setActionMsg(res.data.message);
-      // Refresh enrollment state
       const check = await api.get(`/enrollments/check/${id}`);
       setEnrollment(check.data);
     } catch (err) {
@@ -110,13 +114,11 @@ const CourseDetailPage = () => {
     }
   };
 
-  // ── Pay ────────────────────────────────────────────────
   const handlePay = async () => {
     setPaying(true);
     setActionMsg('');
     setActionErr('');
     try {
-      // Get pending payment
       const paymentsRes = await api.get('/payments/my-payments');
       const pending = paymentsRes.data.payments.find(
         (p) => p.course_id === parseInt(id) && p.status === 'pending'
@@ -127,7 +129,6 @@ const CourseDetailPage = () => {
       }
       const res = await api.post(`/payments/${pending.id}/pay`);
       setActionMsg(res.data.message);
-      // Refresh enrollment
       const check = await api.get(`/enrollments/check/${id}`);
       setEnrollment(check.data);
     } catch (err) {
@@ -137,7 +138,6 @@ const CourseDetailPage = () => {
     }
   };
 
-  // ── Submit rating ──────────────────────────────────────
   const handleRatingSubmit = async (e) => {
     e.preventDefault();
     if (ratingForm.stars === 0) {
@@ -148,19 +148,16 @@ const CourseDetailPage = () => {
     setRatingMsg('');
     try {
       if (myRating) {
-        // Edit existing
         await api.patch(`/ratings/${myRating.id}`, ratingForm);
-        setRatingMsg('Rating updated!');
+        setRatingMsg('Rating updated successfully!');
       } else {
-        // New rating
         await api.post('/ratings', {
           course_id: id,
-          stars: ratingForm.stars,
-          review: ratingForm.review,
+          stars:     ratingForm.stars,
+          review:    ratingForm.review,
         });
-        setRatingMsg('Rating submitted!');
+        setRatingMsg('Rating submitted successfully!');
       }
-      // Refresh course for updated average
       const res = await api.get(`/courses/${id}`);
       setCourse(res.data.course);
     } catch (err) {
@@ -170,210 +167,361 @@ const CourseDetailPage = () => {
     }
   };
 
-  // ── Loading ────────────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent
-                        rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent
+                      rounded-full animate-spin" />
+    </div>
+  );
 
-  // ── Error ──────────────────────────────────────────────
-  if (error || !course) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-5xl mb-4">😕</div>
-          <h2 className="text-xl font-bold text-gray-700 mb-2">{error}</h2>
-          <Link to="/courses"
-            className="text-blue-600 hover:underline text-sm">
-            ← Back to courses
-          </Link>
+  if (error || !course) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center
+                        justify-center mx-auto mb-4">
+          <AlertCircle size={32} className="text-gray-400" />
         </div>
+        <h2 className="text-xl font-bold text-gray-700 mb-2">{error}</h2>
+        <Link to="/courses"
+          className="text-blue-600 hover:underline text-sm">
+          ← Back to courses
+        </Link>
       </div>
-    );
-  }
+    </div>
+  );
 
   const thumbnailUrl = course.thumbnail_url
     ? `http://localhost:5000/uploads/thumbnails/${course.thumbnail_url}`
     : null;
 
-  const hasAccess   = enrollment?.has_access;
-  const isEnrolled  = enrollment?.enrolled;
-  const needsPayment = isEnrolled && !hasAccess && !course.is_free;
+  const hasAccess     = enrollment?.has_access;
+  const isEnrolled    = enrollment?.enrolled;
+  const needsPayment  = isEnrolled && !hasAccess && !course.is_free;
+
+  // Parse learning outcomes
+  const learningOutcomes = course.learning_outcomes
+    ? course.learning_outcomes.split('\n').filter((line) => line.trim())
+    : [];
+
+  const hours   = Math.floor((course.duration || 0) / 60);
+  const minutes = (course.duration || 0) % 60;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
 
-          {/* ── MAIN CONTENT ────────────────────────── */}
-          <div className="flex-1 min-w-0">
-
-            {/* Back */}
-            <Link to="/courses"
-              className="inline-flex items-center gap-1 text-sm text-gray-500
-                         hover:text-blue-600 mb-6 transition-colors">
-              ← Back to courses
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <nav className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+            <Link to="/courses" className="hover:text-white transition-colors">
+              Courses
             </Link>
-
-            {/* Title */}
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+            <span>/</span>
+            <span className="text-white font-medium truncate">
               {course.title}
-            </h1>
+            </span>
+          </nav>
 
-            {/* Meta */}
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <span className="bg-blue-50 text-blue-700 text-xs font-medium
-                               px-2.5 py-1 rounded-full">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <span className="inline-block bg-blue-600/30 text-blue-300
+                               text-xs font-medium px-3 py-1 rounded-full mb-4
+                               border border-blue-500/30">
                 {course.category?.name}
               </span>
-              <span className="flex items-center gap-1 text-sm text-gray-500">
-                <span className="font-bold text-gray-800">
-                  {course.average_rating?.toFixed(1) || '0.0'}
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold
+                             mb-4 leading-tight">
+                {course.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4 mb-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <Stars rating={course.average_rating || 0} />
+                  <span className="font-bold text-amber-400">
+                    {course.average_rating?.toFixed(1) || '0.0'}
+                  </span>
+                  <span className="text-gray-400">
+                    ({course.ratings?.length || 0} reviews)
+                  </span>
+                </div>
+                <span className="flex items-center gap-1.5 text-gray-400">
+                  <Users size={14} />
+                  {course._count?.enrollments || 0} students
                 </span>
-                <Stars rating={course.average_rating || 0} />
-                <span className="text-gray-400">
-                  ({course.ratings?.length || 0} reviews)
+                <span className="flex items-center gap-1.5 text-gray-400">
+                  <Clock size={14} />
+                  {hours}h {minutes}m
                 </span>
-              </span>
-              <span className="text-sm text-gray-500">
-                👥 {course._count?.enrollments || 0} students
-              </span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Created by{' '}
+                <span className="text-white font-medium">
+                  {course.instructor?.name}
+                </span>
+              </p>
             </div>
 
-            <p className="text-sm text-gray-500 mb-6">
-              Created by{' '}
-              <span className="font-medium text-gray-700">
-                {course.instructor?.name}
-              </span>
-            </p>
+            {/* Sidebar price card — desktop */}
+            <div className="hidden lg:block">
+              <PriceCard
+                course={course}
+                user={user}
+                isStudent={isStudent}
+                isEnrolled={isEnrolled}
+                hasAccess={hasAccess}
+                needsPayment={needsPayment}
+                enrolling={enrolling}
+                paying={paying}
+                actionMsg={actionMsg}
+                actionErr={actionErr}
+                onEnroll={handleEnroll}
+                onPay={handlePay}
+                navigate={navigate}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Thumbnail */}
-            <div className="aspect-video bg-gradient-to-br from-blue-100
-                            to-blue-200 rounded-xl overflow-hidden mb-6
-                            flex items-center justify-center">
-              {thumbnailUrl ? (
-                <img
-                  src={thumbnailUrl}
-                  alt={course.title}
-                  className="w-full h-full object-cover"
-                />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* Main content */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Video section */}
+            <div className="bg-white rounded-2xl border border-gray-200
+                            overflow-hidden shadow-sm">
+              {hasAccess && course.video_url ? (
+                <div>
+                  <div className="bg-black">
+                    <video
+                      ref={videoRef}
+                      controls
+                      className="w-full max-h-[400px]"
+                      src={`http://localhost:5000/api/courses/${course.id}/video`}
+                    >
+                      Your browser does not support video.
+                    </video>
+                  </div>
+                  <div className="p-4 flex items-center gap-2 bg-green-50
+                                  border-t border-green-100">
+                    <CheckCircle size={16} className="text-green-600" />
+                    <span className="text-sm text-green-700 font-medium">
+                      You have full access to this course
+                    </span>
+                  </div>
+                </div>
               ) : (
-                <span className="text-6xl">📚</span>
+                <div className="relative">
+                  {/* Thumbnail with lock overlay */}
+                  <div className="aspect-video bg-gradient-to-br from-blue-100
+                                  to-indigo-200 relative overflow-hidden">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center
+                                      justify-center">
+                        <BookOpen size={48} className="text-blue-300" />
+                      </div>
+                    )}
+
+                    {/* Dark overlay */}
+                    <div className="absolute inset-0 bg-black/50 flex items-center
+                                    justify-center">
+                      <div className="text-center text-white">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm
+                                        rounded-full flex items-center justify-center
+                                        mx-auto mb-3 border border-white/30">
+                          {isEnrolled && needsPayment
+                            ? <Lock size={28} className="text-white" />
+                            : <Play size={28} className="text-white fill-white" />
+                          }
+                        </div>
+                        <p className="font-semibold text-sm">
+                          {isEnrolled && needsPayment
+                            ? 'Complete payment to watch'
+                            : !isEnrolled
+                              ? 'Enroll to watch this course'
+                              : 'No video uploaded yet'}
+                        </p>
+                        {!course.video_url && hasAccess && (
+                          <p className="text-xs text-white/70 mt-1">
+                            Instructor has not uploaded a video yet
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
             {/* Description */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-              <h2 className="font-bold text-gray-900 mb-3">
-                About this course
+            <div className="bg-white rounded-2xl border border-gray-200 p-6
+                            shadow-sm">
+              <h2 className="font-bold text-gray-900 text-xl mb-4">
+                About This Course
               </h2>
-              <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+              <p className="text-gray-600 leading-relaxed whitespace-pre-line
+                            text-sm">
                 {course.description}
               </p>
             </div>
 
-            {/* Video — only if has access */}
-            {hasAccess && course.video_url && (
-              <div className="bg-white rounded-xl border border-gray-200
-                              p-6 mb-6">
-                <h2 className="font-bold text-gray-900 mb-4">
-                  🎥 Course Video
+            {/* What You'll Learn */}
+            {learningOutcomes.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-6
+                              shadow-sm">
+                <h2 className="font-bold text-gray-900 text-xl mb-4">
+                  What You Will Learn
                 </h2>
-                <video
-                  controls
-                  className="w-full rounded-lg"
-                  src={`http://localhost:5000/api/courses/${course.id}/video`}
-                >
-                  Your browser does not support the video tag.
-                </video>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {learningOutcomes.map((outcome, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <CheckCircle
+                        size={16}
+                        className="text-blue-600 mt-0.5 flex-shrink-0"
+                      />
+                      <span className="text-gray-700 text-sm leading-relaxed">
+                        {outcome}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Rating form — only enrolled students */}
+            {/* Rating Form */}
             {isStudent && isEnrolled && hasAccess && (
-              <div className="bg-white rounded-xl border border-gray-200
-                              p-6 mb-6">
-                <h2 className="font-bold text-gray-900 mb-4">
-                  {myRating ? '✏️ Edit your rating' : '⭐ Rate this course'}
-                </h2>
-                <form onSubmit={handleRatingSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Your rating
-                    </label>
-                    <Stars
-                      rating={ratingForm.stars}
-                      interactive
-                      onRate={(star) =>
-                        setRatingForm((f) => ({ ...f, stars: star }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Review (optional)
-                    </label>
-                    <textarea
-                      value={ratingForm.review}
-                      onChange={(e) =>
-                        setRatingForm((f) => ({ ...f, review: e.target.value }))
-                      }
-                      rows={3}
-                      placeholder="Share your experience..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg
-                                 text-sm focus:outline-none focus:ring-2
-                                 focus:ring-blue-500 resize-none"
-                    />
-                  </div>
-                  {ratingMsg && (
-                    <p className={`text-sm ${
-                      ratingMsg.includes('!')
-                        ? 'text-green-600'
-                        : 'text-red-600'
-                    }`}>
-                      {ratingMsg}
-                    </p>
-                  )}
+              <div className="bg-white rounded-2xl border border-gray-200 p-6
+                              shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-bold text-gray-900 text-xl">
+                    {myRating ? 'Your Rating' : 'Rate This Course'}
+                  </h2>
                   <button
-                    type="submit"
-                    disabled={submitting}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                               text-white px-6 py-2 rounded-lg text-sm font-medium
-                               transition-colors"
+                    onClick={() => setShowRatingForm(!showRatingForm)}
+                    className="text-sm text-blue-600 hover:text-blue-700
+                               font-medium flex items-center gap-1"
                   >
-                    {submitting
-                      ? 'Submitting...'
-                      : myRating
-                        ? 'Update rating'
-                        : 'Submit rating'}
+                    {showRatingForm ? (
+                      <><ChevronUp size={16} /> Hide</>
+                    ) : (
+                      <><ChevronDown size={16} /> {myRating ? 'Edit' : 'Add'} Rating</>
+                    )}
                   </button>
-                </form>
+                </div>
+
+                {myRating && !showRatingForm && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50
+                                  rounded-xl">
+                    <Stars rating={myRating.stars} />
+                    <span className="text-sm text-gray-600">
+                      {myRating.review || 'No review written'}
+                    </span>
+                  </div>
+                )}
+
+                {showRatingForm && (
+                  <form onSubmit={handleRatingSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Your Rating *
+                      </label>
+                      <Stars
+                        rating={ratingForm.stars}
+                        interactive
+                        size="lg"
+                        onRate={(star) =>
+                          setRatingForm((f) => ({ ...f, stars: star }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Review (optional)
+                      </label>
+                      <textarea
+                        value={ratingForm.review}
+                        onChange={(e) =>
+                          setRatingForm((f) => ({
+                            ...f, review: e.target.value,
+                          }))
+                        }
+                        rows={3}
+                        placeholder="Share your experience..."
+                        className="w-full px-3 py-2.5 border border-gray-300
+                                   rounded-lg text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500 resize-none"
+                      />
+                    </div>
+                    {ratingMsg && (
+                      <p className={`text-sm font-medium
+                        ${ratingMsg.includes('success')
+                          ? 'text-green-600' : 'text-red-600'}`}>
+                        {ratingMsg}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
+                                 text-white px-6 py-2.5 rounded-xl text-sm
+                                 font-semibold transition-colors"
+                    >
+                      {submitting ? 'Submitting...' : myRating ? 'Update Rating' : 'Submit Rating'}
+                    </button>
+                  </form>
+                )}
               </div>
             )}
 
-            {/* Reviews list */}
+            {/* Reviews */}
             {course.ratings && course.ratings.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="font-bold text-gray-900 mb-4">
-                  Student reviews
+              <div className="bg-white rounded-2xl border border-gray-200 p-6
+                              shadow-sm">
+                <h2 className="font-bold text-gray-900 text-xl mb-2">
+                  Student Reviews
                 </h2>
-                <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-6 pb-6
+                                border-b border-gray-100">
+                  <div className="text-center">
+                    <div className="text-4xl font-extrabold text-gray-900 mb-1">
+                      {course.average_rating?.toFixed(1) || '0.0'}
+                    </div>
+                    <Stars rating={course.average_rating || 0} size="lg" />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {course.ratings.length} reviews
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-5">
                   {course.ratings.map((rating) => (
                     <div key={rating.id}
-                      className="border-b border-gray-100 last:border-0 pb-4
+                      className="border-b border-gray-100 last:border-0 pb-5
                                  last:pb-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm text-gray-800">
-                          {rating.student?.name}
-                        </span>
-                        <Stars rating={rating.stars} />
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br
+                                        from-blue-400 to-indigo-500 flex items-center
+                                        justify-center text-white text-xs font-bold
+                                        flex-shrink-0">
+                          {rating.student?.name?.charAt(0)?.toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">
+                            {rating.student?.name}
+                          </p>
+                          <Stars rating={rating.stars} />
+                        </div>
                       </div>
                       {rating.review && (
-                        <p className="text-sm text-gray-600">{rating.review}</p>
+                        <p className="text-sm text-gray-600 leading-relaxed ml-11">
+                          {rating.review}
+                        </p>
                       )}
                     </div>
                   ))}
@@ -383,132 +531,216 @@ const CourseDetailPage = () => {
 
           </div>
 
-          {/* ── SIDEBAR ─────────────────────────────── */}
-          <div className="w-full lg:w-80 flex-shrink-0">
-            <div className="bg-white rounded-xl border border-gray-200 p-6
-                            sticky top-20">
+          {/* Mobile price card */}
+          <div className="lg:hidden">
+            <PriceCard
+              course={course}
+              user={user}
+              isStudent={isStudent}
+              isEnrolled={isEnrolled}
+              hasAccess={hasAccess}
+              needsPayment={needsPayment}
+              enrolling={enrolling}
+              paying={paying}
+              actionMsg={actionMsg}
+              actionErr={actionErr}
+              onEnroll={handleEnroll}
+              onPay={handlePay}
+              navigate={navigate}
+            />
+          </div>
 
-              {/* Price */}
-              <div className="text-3xl font-bold text-gray-900 mb-1">
-                {course.is_free
-                  ? 'Free'
-                  : `$${parseFloat(course.price).toFixed(2)}`}
-              </div>
-              {course.is_free && (
-                <p className="text-green-600 text-sm font-medium mb-4">
-                  No payment required
-                </p>
-              )}
-
-              {/* Course info */}
-              <div className="space-y-2 py-4 border-y border-gray-100 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Duration</span>
-                  <span className="font-medium text-gray-800">
-                    {Math.floor((course.duration || 0) / 60)}h{' '}
-                    {(course.duration || 0) % 60}m
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Category</span>
-                  <span className="font-medium text-gray-800">
-                    {course.category?.name}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Students</span>
-                  <span className="font-medium text-gray-800">
-                    {course._count?.enrollments || 0}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Rating</span>
-                  <span className="font-medium text-gray-800">
-                    {course.average_rating?.toFixed(1) || 'N/A'} ★
-                  </span>
-                </div>
-              </div>
-
-              {/* Action messages */}
-              {actionMsg && (
-                <div className="bg-green-50 border border-green-200
-                                text-green-700 rounded-lg px-3 py-2 text-sm mb-3">
-                  {actionMsg}
-                </div>
-              )}
-              {actionErr && (
-                <div className="bg-red-50 border border-red-200 text-red-700
-                                rounded-lg px-3 py-2 text-sm mb-3">
-                  {actionErr}
-                </div>
-              )}
-
-              {/* CTA Buttons */}
-              {!user && (
-                <Link to="/login"
-                  className="block w-full bg-blue-600 hover:bg-blue-700
-                             text-white text-center font-semibold py-3
-                             rounded-xl text-sm transition-colors">
-                  Login to Enroll
-                </Link>
-              )}
-
-              {user && isStudent && !isEnrolled && (
-                <button
-                  onClick={handleEnroll}
-                  disabled={enrolling}
-                  className="w-full bg-blue-600 hover:bg-blue-700
-                             disabled:bg-blue-400 text-white font-semibold
-                             py-3 rounded-xl text-sm transition-colors"
-                >
-                  {enrolling ? 'Enrolling...' : 'Enroll Now'}
-                </button>
-              )}
-
-              {user && isStudent && needsPayment && (
-                <button
-                  onClick={handlePay}
-                  disabled={paying}
-                  className="w-full bg-green-600 hover:bg-green-700
-                             disabled:bg-green-400 text-white font-semibold
-                             py-3 rounded-xl text-sm transition-colors"
-                >
-                  {paying
-                    ? 'Processing...'
-                    : `Pay $${parseFloat(course.price).toFixed(2)}`}
-                </button>
-              )}
-
-              {user && isStudent && hasAccess && (
-                <div className="bg-green-50 border border-green-200
-                                rounded-xl p-4 text-center">
-                  <div className="text-2xl mb-1">✅</div>
-                  <p className="text-green-700 font-semibold text-sm">
-                    You have full access
-                  </p>
-                  {course.video_url && (
-                    <p className="text-green-600 text-xs mt-1">
-                      Scroll down to watch the video
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {user && !isStudent && (
-                <div className="bg-gray-50 border border-gray-200
-                                rounded-xl p-4 text-center">
-                  <p className="text-gray-500 text-sm">
-                    {user.role === 'instructor'
-                      ? 'You are viewing as instructor'
-                      : 'You are viewing as admin'}
-                  </p>
-                </div>
-              )}
-
-            </div>
+          {/* Desktop sidebar */}
+          <div className="hidden lg:block">
+            {/* Already rendered above in hero */}
           </div>
 
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Price card (reused for desktop + mobile) ───────────────
+const PriceCard = ({
+  course, user, isStudent, isEnrolled, hasAccess,
+  needsPayment, enrolling, paying, actionMsg, actionErr,
+  onEnroll, onPay, navigate,
+}) => {
+  const hours   = Math.floor((course.duration || 0) / 60);
+  const minutes = (course.duration || 0) % 60;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-lg
+                    sticky top-20">
+      {/* Price */}
+      <div className="text-3xl font-extrabold text-gray-900 mb-1">
+        {course.is_free ? 'Free' : `$${parseFloat(course.price).toFixed(2)}`}
+      </div>
+      {course.is_free && (
+        <p className="text-green-600 text-sm font-medium mb-4">
+          No payment required
+        </p>
+      )}
+
+      {/* Course details */}
+      <div className="space-y-2 py-4 border-y border-gray-100 mb-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 flex items-center gap-1.5">
+            <Clock size={14} />
+            Duration
+          </span>
+          <span className="font-medium text-gray-900">
+            {hours}h {minutes}m
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 flex items-center gap-1.5">
+            <BookOpen size={14} />
+            Category
+          </span>
+          <span className="font-medium text-gray-900">
+            {course.category?.name}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 flex items-center gap-1.5">
+            <Users size={14} />
+            Students
+          </span>
+          <span className="font-medium text-gray-900">
+            {course._count?.enrollments || 0}
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500 flex items-center gap-1.5">
+            <Star size={14} />
+            Rating
+          </span>
+          <span className="font-medium text-gray-900">
+            {course.average_rating?.toFixed(1) || 'N/A'} ★
+          </span>
+        </div>
+      </div>
+
+      {/* Messages */}
+      {actionMsg && (
+        <div className="bg-green-50 border border-green-200 text-green-700
+                        rounded-xl px-3 py-2 text-sm mb-3 flex items-center gap-2">
+          <CheckCircle size={14} />
+          {actionMsg}
+        </div>
+      )}
+      {actionErr && (
+        <div className="bg-red-50 border border-red-200 text-red-700
+                        rounded-xl px-3 py-2 text-sm mb-3 flex items-center gap-2">
+          <AlertCircle size={14} />
+          {actionErr}
+        </div>
+      )}
+
+      {/* Action button */}
+      {!user && (
+        <button
+          onClick={() => navigate('/login')}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold
+                     py-3 rounded-xl transition-colors flex items-center
+                     justify-center gap-2"
+        >
+          <Lock size={16} />
+          Login to Enroll
+        </button>
+      )}
+
+      {user && isStudent && !isEnrolled && (
+        <button
+          onClick={onEnroll}
+          disabled={enrolling}
+          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
+                     text-white font-bold py-3 rounded-xl transition-colors
+                     flex items-center justify-center gap-2"
+        >
+          {enrolling ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent
+                              rounded-full animate-spin" />
+              Enrolling...
+            </>
+          ) : (
+            <>
+              <BookOpen size={16} />
+              {course.is_free ? 'Enroll Now — Free' : 'Enroll Now'}
+            </>
+          )}
+        </button>
+      )}
+
+      {user && isStudent && needsPayment && (
+        <button
+          onClick={onPay}
+          disabled={paying}
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400
+                     text-white font-bold py-3 rounded-xl transition-colors
+                     flex items-center justify-center gap-2"
+        >
+          {paying ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent
+                              rounded-full animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <CheckCircle size={16} />
+              Pay ${parseFloat(course.price).toFixed(2)} — Unlock Access
+            </>
+          )}
+        </button>
+      )}
+
+      {user && isStudent && hasAccess && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4
+                        text-center">
+          <CheckCircle size={24} className="text-green-600 mx-auto mb-2" />
+          <p className="text-green-700 font-semibold text-sm">
+            You have full access
+          </p>
+          {course.video_url && (
+            <p className="text-green-600 text-xs mt-1">
+              Scroll up to watch the video
+            </p>
+          )}
+        </div>
+      )}
+
+      {user && !isStudent && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4
+                        text-center">
+          <p className="text-gray-500 text-sm capitalize">
+            Viewing as {user.role}
+          </p>
+        </div>
+      )}
+
+      {/* Includes list */}
+      <div className="mt-5 pt-5 border-t border-gray-100">
+        <p className="text-xs font-semibold text-gray-700 mb-3 uppercase
+                      tracking-wide">
+          This course includes
+        </p>
+        <ul className="space-y-2 text-xs text-gray-600">
+          {[
+            { icon: Play,         text: 'HD video lessons'         },
+            { icon: Clock,        text: 'Lifetime access'          },
+            { icon: Star,         text: 'Certificate of completion' },
+            { icon: BookOpen,     text: 'Expert instructor'        },
+          ].map((item) => (
+            <li key={item.text} className="flex items-center gap-2">
+              <item.icon size={13} className="text-blue-500 flex-shrink-0" />
+              {item.text}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

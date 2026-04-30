@@ -7,17 +7,15 @@ const { prisma } = require('../config/db');
 // ─────────────────────────────────────────────────────────
 const createCourse = async (req, res) => {
   try {
-    const { title, description, price, is_free, duration, category_id } = req.body;
+   const { title, description, learning_outcomes, price, is_free, duration, category_id } = req.body;
     const instructor_id = req.user.id;
 
-    // ── 1. Validate required fields ────────────────────
     if (!title || !description || !duration || !category_id) {
       return res.status(400).json({
         message: 'Required fields: title, description, duration, category_id'
       });
     }
 
-    // ── 2. Validate category exists ────────────────────
     const category = await prisma.category.findUnique({
       where: { id: parseInt(category_id) }
     });
@@ -26,9 +24,6 @@ const createCourse = async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // ── 3. Price logic ─────────────────────────────────
-    // If is_free = true → price must be 0
-    // If is_free = false → price must be > 0
     const coursePrice = is_free ? 0.00 : parseFloat(price) || 0.00;
 
     if (!is_free && coursePrice <= 0) {
@@ -37,26 +32,23 @@ const createCourse = async (req, res) => {
       });
     }
 
-    // ── 4. Create course ───────────────────────────────
-    // Status = pending → needs admin approval
     const course = await prisma.course.create({
       data: {
-        title: title.trim(),
-        description: description.trim(),
-        price: coursePrice,
-        is_free: Boolean(is_free),
-        duration: parseInt(duration),
-        status: 'pending',
+        title:             title.trim(),
+        description:       description.trim(),
+        learning_outcomes: learning_outcomes
+          ? learning_outcomes.trim()
+          : null,
+        price:        coursePrice,
+        is_free:      Boolean(is_free),
+        duration:     parseInt(duration),
+        status:       'pending',
         instructor_id,
-        category_id: parseInt(category_id),
+        category_id:  parseInt(category_id),
       },
       include: {
-        instructor: {
-          select: { id: true, name: true, email: true }
-        },
-        category: {
-          select: { id: true, name: true }
-        }
+        instructor: { select: { id: true, name: true, email: true } },
+        category:   { select: { id: true, name: true } },
       }
     });
 
@@ -298,9 +290,7 @@ const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
     const instructor_id = req.user.id;
-    const { title, description, price, is_free, duration, category_id } = req.body;
-
-    // ── 1. Find course ─────────────────────────────────
+    const { title, description, learning_outcomes, price, is_free, duration, category_id } = req.body;
     const course = await prisma.course.findUnique({
       where: { id: parseInt(id) }
     });
@@ -309,42 +299,44 @@ const updateCourse = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // ── 2. Ownership check ─────────────────────────────
     if (course.instructor_id !== instructor_id) {
       return res.status(403).json({
         message: 'Access denied. This is not your course.'
       });
     }
 
-    // ── 3. Build update data ───────────────────────────
     const updateData = {};
 
-    if (title) updateData.title = title.trim();
+    if (title)       updateData.title       = title.trim();
     if (description) updateData.description = description.trim();
-    if (duration) updateData.duration = parseInt(duration);
+    if (duration)    updateData.duration    = parseInt(duration);
     if (category_id) updateData.category_id = parseInt(category_id);
+
+    if (learning_outcomes !== undefined) {
+      updateData.learning_outcomes = learning_outcomes
+        ? learning_outcomes.trim()
+        : null;
+    }
 
     if (is_free !== undefined) {
       updateData.is_free = Boolean(is_free);
-      updateData.price = is_free ? 0.00 : parseFloat(price) || course.price;
+      updateData.price   = is_free ? 0.00 : parseFloat(price) || course.price;
     }
 
-    // When instructor updates → reset to pending for re-approval
     updateData.status = 'pending';
 
-    // ── 4. Update ──────────────────────────────────────
     const updatedCourse = await prisma.course.update({
       where: { id: parseInt(id) },
-      data: updateData,
+      data:  updateData,
       include: {
-        category: { select: { id: true, name: true } },
-        instructor: { select: { id: true, name: true } }
+        category:   { select: { id: true, name: true } },
+        instructor: { select: { id: true, name: true } },
       }
     });
 
     return res.status(200).json({
       message: 'Course updated. Pending admin re-approval.',
-      course: updatedCourse,
+      course:  updatedCourse,
     });
 
   } catch (error) {

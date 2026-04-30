@@ -1,168 +1,219 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Search, Filter, Star, Clock, Users, BookOpen,
+  ChevronDown, SlidersHorizontal, X,
+} from 'lucide-react';
 import api from '../../api/axios';
 
-// ── Star display ───────────────────────────────────────────
-const Stars = ({ rating }) => {
-  return (
+// ── Star rating display ────────────────────────────────────
+const StarRating = ({ rating, count }) => (
+  <div className="flex items-center gap-1.5">
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
-        <span
+        <Star
           key={star}
-          className={`text-sm ${
-            star <= Math.round(rating)
-              ? 'text-yellow-400'
-              : 'text-gray-200'
-          }`}
-        >
-          ★
-        </span>
+          size={13}
+          className={star <= Math.round(rating)
+            ? 'text-amber-400 fill-amber-400'
+            : 'text-gray-200 fill-gray-200'}
+        />
       ))}
     </div>
-  );
-};
+    <span className="text-xs font-bold text-gray-700">
+      {rating?.toFixed(1) || '0.0'}
+    </span>
+    {count !== undefined && (
+      <span className="text-xs text-gray-400">({count})</span>
+    )}
+  </div>
+);
 
-// ── Course card ────────────────────────────────────────────
+// ── Course Card ────────────────────────────────────────────
 const CourseCard = ({ course }) => {
   const thumbnailUrl = course.thumbnail_url
     ? `http://localhost:5000/uploads/thumbnails/${course.thumbnail_url}`
     : null;
 
+  const hours   = Math.floor((course.duration || 0) / 60);
+  const minutes = (course.duration || 0) % 60;
+
   return (
-    <Link
-      to={`/courses/${course.id}`}
-      className="bg-white rounded-xl border border-gray-200 overflow-hidden
-                 hover:shadow-md transition-shadow flex flex-col"
-    >
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm
+                    hover:shadow-lg transition-all duration-300 overflow-hidden
+                    flex flex-col group">
+
       {/* Thumbnail */}
-      <div className="aspect-video bg-gradient-to-br from-blue-100 to-blue-200
-                      flex items-center justify-center overflow-hidden">
+      <div className="aspect-video bg-gradient-to-br from-blue-100 to-indigo-200
+                      overflow-hidden relative flex-shrink-0">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt={course.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105
+                       transition-transform duration-500"
           />
         ) : (
-          <span className="text-4xl">📚</span>
+          <div className="w-full h-full flex items-center justify-center">
+            <BookOpen size={40} className="text-blue-300" />
+          </div>
         )}
+
+        {/* Price badge */}
+        <div className="absolute top-3 right-3">
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full shadow-sm
+            ${course.is_free
+              ? 'bg-green-500 text-white'
+              : 'bg-blue-600 text-white'}`}>
+            {course.is_free ? 'FREE' : `$${parseFloat(course.price).toFixed(2)}`}
+          </span>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-5 flex flex-col flex-1">
 
-        {/* Category + Free badge */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-blue-600 font-medium bg-blue-50
-                           px-2 py-0.5 rounded-full">
+        {/* Category */}
+        <div className="mb-2">
+          <span className="text-xs font-medium text-blue-600 bg-blue-50
+                           px-2.5 py-1 rounded-full">
             {course.category?.name || 'General'}
           </span>
-          {course.is_free && (
-            <span className="text-xs text-green-600 font-semibold bg-green-50
-                             px-2 py-0.5 rounded-full">
-              FREE
-            </span>
-          )}
         </div>
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-900 text-sm leading-snug
-                       mb-1 line-clamp-2 flex-1">
+        <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1.5
+                       line-clamp-2 group-hover:text-blue-600 transition-colors
+                       flex-1">
           {course.title}
         </h3>
 
         {/* Instructor */}
         <p className="text-xs text-gray-500 mb-3">
-          by {course.instructor?.name || 'Unknown'}
+          by <span className="font-medium text-gray-700">
+            {course.instructor?.name || 'Unknown'}
+          </span>
         </p>
 
         {/* Rating */}
-        <div className="flex items-center gap-1.5 mb-3">
-          <span className="text-xs font-bold text-gray-800">
-            {course.average_rating?.toFixed(1) || '0.0'}
+        <div className="mb-3">
+          <StarRating
+            rating={course.average_rating || 0}
+            count={course._count?.ratings || 0}
+          />
+        </div>
+
+        {/* Meta */}
+        <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
+          <span className="flex items-center gap-1">
+            <Clock size={12} />
+            {hours}h {minutes}m
           </span>
-          <Stars rating={course.average_rating || 0} />
-          <span className="text-xs text-gray-400">
-            ({course._count?.ratings || 0})
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Users size={12} />
+            {course._count?.enrollments || 0} students
           </span>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-3
-                        border-t border-gray-100">
-          <span className="text-xs text-gray-400">
-            {Math.floor((course.duration || 0) / 60)}h{' '}
-            {(course.duration || 0) % 60}m
-          </span>
-          <span className="font-bold text-gray-900 text-sm">
-            {course.is_free
-              ? 'Free'
-              : `$${parseFloat(course.price).toFixed(2)}`}
-          </span>
-        </div>
-
+        {/* View button */}
+        <Link
+          to={`/courses/${course.id}`}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-center
+                     py-2.5 rounded-xl text-sm font-semibold transition-colors
+                     flex items-center justify-center gap-2"
+        >
+          View Course
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 };
 
-// ── Skeleton loader ────────────────────────────────────────
+// ── Skeleton ───────────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden
+  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden
                   animate-pulse">
     <div className="aspect-video bg-gray-200" />
-    <div className="p-4 space-y-3">
-      <div className="h-3 bg-gray-200 rounded w-1/3" />
+    <div className="p-5 space-y-3">
+      <div className="h-3 bg-gray-200 rounded w-1/4" />
       <div className="h-4 bg-gray-200 rounded w-full" />
       <div className="h-4 bg-gray-200 rounded w-3/4" />
       <div className="h-3 bg-gray-200 rounded w-1/2" />
+      <div className="h-10 bg-gray-200 rounded-xl" />
     </div>
   </div>
 );
 
 const CoursesPage = () => {
-  const [courses, setCourses]         = useState([]);
-  const [categories, setCategories]   = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState('');
-  const [pagination, setPagination]   = useState({});
+  const [courses,    setCourses]    = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState('');
+  const [pagination, setPagination] = useState({});
+  const [showFilters, setShowFilters] = useState(false);
 
   const [filters, setFilters] = useState({
     search:   '',
     category: '',
     is_free:  '',
+    sort:     'newest',
+    duration: '',
     page:     1,
     limit:    12,
   });
 
-  // ── Fetch categories once ──────────────────────────────
+  // Fetch categories
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await api.get('/categories');
-        setCategories(res.data.categories || []);
-      } catch {
-        // non-critical
-      }
-    };
-    fetchCategories();
+    api.get('/categories')
+      .then((r) => setCategories(r.data.categories || []))
+      .catch(() => {});
   }, []);
 
-  // ── Fetch courses when filters change ─────────────────
+  // Fetch courses
   useEffect(() => {
     const fetchCourses = async () => {
       setLoading(true);
       setError('');
       try {
-        const params = {};
+        const params = {
+          page:  filters.page,
+          limit: filters.limit,
+        };
         if (filters.search)   params.search   = filters.search;
         if (filters.category) params.category = filters.category;
         if (filters.is_free !== '') params.is_free = filters.is_free;
-        params.page  = filters.page;
-        params.limit = filters.limit;
 
         const res = await api.get('/courses', { params });
-        setCourses(res.data.courses || []);
+        let courses = res.data.courses || [];
+
+        // Client-side sort
+        if (filters.sort === 'rating') {
+          courses = courses.sort((a, b) =>
+            (b.average_rating || 0) - (a.average_rating || 0)
+          );
+        } else if (filters.sort === 'price_low') {
+          courses = courses.sort((a, b) =>
+            parseFloat(a.price) - parseFloat(b.price)
+          );
+        } else if (filters.sort === 'price_high') {
+          courses = courses.sort((a, b) =>
+            parseFloat(b.price) - parseFloat(a.price)
+          );
+        }
+
+        // Client-side duration filter
+        if (filters.duration) {
+          courses = courses.filter((c) => {
+            const hours = (c.duration || 0) / 60;
+            if (filters.duration === 'under2')   return hours < 2;
+            if (filters.duration === '2to5')     return hours >= 2 && hours <= 5;
+            if (filters.duration === 'over5')    return hours > 5;
+            return true;
+          });
+        }
+
+        setCourses(courses);
         setPagination(res.data.pagination || {});
       } catch {
         setError('Failed to load courses. Please try again.');
@@ -173,233 +224,294 @@ const CoursesPage = () => {
     fetchCourses();
   }, [filters]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setFilters((f) => ({ ...f, page: 1 }));
-  };
-
-  const handleFilterChange = (key, value) => {
+  const updateFilter = (key, value) => {
     setFilters((f) => ({ ...f, [key]: value, page: 1 }));
   };
 
-  const handlePageChange = (newPage) => {
-    setFilters((f) => ({ ...f, page: newPage }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const clearFilters = () => {
+    setFilters({
+      search: '', category: '', is_free: '',
+      sort: 'newest', duration: '', page: 1, limit: 12,
+    });
   };
+
+  const hasActiveFilters = filters.search || filters.category ||
+    filters.is_free || filters.duration ||
+    filters.sort !== 'newest';
 
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* ── HEADER ────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            All Courses
-          </h1>
-          <p className="text-gray-500 text-sm">
-            {pagination.total
-              ? `${pagination.total} courses available`
-              : 'Browse our course catalog'}
-          </p>
+      {/* Header */}
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="max-w-2xl">
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">
+              Browse Courses
+            </h1>
+            <p className="text-blue-100 text-lg">
+              {pagination.total
+                ? `${pagination.total} courses available`
+                : 'Explore our full course catalog'}
+            </p>
+          </div>
+
+          {/* Search bar */}
+          <div className="mt-6 max-w-2xl">
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              className="flex gap-3"
+            >
+              <div className="flex-1 relative">
+                <Search
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2
+                             text-gray-400"
+                />
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => updateFilter('search', e.target.value)}
+                  placeholder="Search courses..."
+                  className="w-full pl-11 pr-4 py-3 rounded-xl text-gray-900
+                             placeholder-gray-400 focus:outline-none focus:ring-2
+                             focus:ring-blue-300 text-sm bg-white shadow-sm"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl
+                            text-sm font-medium transition-colors border
+                            ${showFilters
+                              ? 'bg-white text-blue-700 border-white'
+                              : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                            }`}
+              >
+                <SlidersHorizontal size={16} />
+                Filters
+                {hasActiveFilters && (
+                  <span className="w-2 h-2 bg-amber-400 rounded-full" />
+                )}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
 
-          {/* ── SIDEBAR FILTERS ───────────────────────── */}
-          <aside className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl border border-gray-200 p-5
-                            sticky top-20">
-              <h2 className="font-semibold text-gray-900 mb-4">Filters</h2>
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6
+                          shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Filter size={16} />
+                Filter Courses
+              </h3>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium
+                             flex items-center gap-1"
+                >
+                  <X size={14} />
+                  Clear all
+                </button>
+              )}
+            </div>
 
-              {/* Search */}
-              <form onSubmit={handleSearch} className="mb-5">
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                  Search
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={filters.search}
-                    onChange={(e) =>
-                      setFilters((f) => ({ ...f, search: e.target.value }))
-                    }
-                    placeholder="Search courses..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg
-                               text-sm focus:outline-none focus:ring-2
-                               focus:ring-blue-500"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-blue-600 text-white px-3 py-2 rounded-lg
-                               text-sm hover:bg-blue-700 transition-colors"
-                  >
-                    Go
-                  </button>
-                </div>
-              </form>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
               {/* Category */}
-              <div className="mb-5">
+              <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Category
                 </label>
                 <select
                   value={filters.category}
-                  onChange={(e) =>
-                    handleFilterChange('category', e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg
+                  onChange={(e) => updateFilter('category', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
                              text-sm focus:outline-none focus:ring-2
                              focus:ring-blue-500 bg-white"
                 >
-                  <option value="">All categories</option>
+                  <option value="">All Categories</option>
                   {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
               </div>
 
               {/* Price */}
-              <div className="mb-5">
+              <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Price
                 </label>
-                <div className="space-y-2">
-                  {[
-                    { label: 'All courses', value: '' },
-                    { label: 'Free only',   value: 'true' },
-                    { label: 'Paid only',   value: 'false' },
-                  ].map((opt) => (
-                    <label key={opt.value}
-                      className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="is_free"
-                        value={opt.value}
-                        checked={filters.is_free === opt.value}
-                        onChange={() =>
-                          handleFilterChange('is_free', opt.value)
-                        }
-                        className="text-blue-600"
-                      />
-                      <span className="text-sm text-gray-600">{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
+                <select
+                  value={filters.is_free}
+                  onChange={(e) => updateFilter('is_free', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
+                             text-sm focus:outline-none focus:ring-2
+                             focus:ring-blue-500 bg-white"
+                >
+                  <option value="">All Prices</option>
+                  <option value="true">Free Only</option>
+                  <option value="false">Paid Only</option>
+                </select>
               </div>
 
-              {/* Clear filters */}
-              <button
-                onClick={() =>
-                  setFilters({
-                    search: '', category: '', is_free: '', page: 1, limit: 12,
-                  })
-                }
-                className="w-full text-sm text-gray-500 hover:text-red-600
-                           py-2 border border-gray-200 rounded-lg
-                           hover:border-red-200 transition-colors"
-              >
-                Clear filters
-              </button>
+              {/* Duration */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Duration
+                </label>
+                <select
+                  value={filters.duration}
+                  onChange={(e) => updateFilter('duration', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
+                             text-sm focus:outline-none focus:ring-2
+                             focus:ring-blue-500 bg-white"
+                >
+                  <option value="">Any Duration</option>
+                  <option value="under2">Under 2 Hours</option>
+                  <option value="2to5">2 – 5 Hours</option>
+                  <option value="over5">Over 5 Hours</option>
+                </select>
+              </div>
+
+              {/* Sort */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Sort By
+                </label>
+                <select
+                  value={filters.sort}
+                  onChange={(e) => updateFilter('sort', e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
+                             text-sm focus:outline-none focus:ring-2
+                             focus:ring-blue-500 bg-white"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="rating">Highest Rated</option>
+                  <option value="price_low">Price: Low to High</option>
+                  <option value="price_high">Price: High to Low</option>
+                </select>
+              </div>
+
             </div>
-          </aside>
+          </div>
+        )}
 
-          {/* ── COURSE GRID ───────────────────────────── */}
-          <main className="flex-1">
-
-            {/* Error */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700
-                              rounded-xl px-4 py-3 text-sm mb-6">
-                {error}
-              </div>
-            )}
-
-            {/* Loading skeletons */}
-            {loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2
-                              xl:grid-cols-3 gap-5">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
-              </div>
-            )}
-
-            {/* Courses */}
-            {!loading && !error && (
-              <>
-                {courses.length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="text-5xl mb-4">🔍</div>
-                    <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                      No courses found
-                    </h3>
-                    <p className="text-gray-400 text-sm">
-                      Try adjusting your filters
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2
-                                    xl:grid-cols-3 gap-5">
-                      {courses.map((course) => (
-                        <CourseCard key={course.id} course={course} />
-                      ))}
-                    </div>
-
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                      <div className="flex items-center justify-center gap-2 mt-8">
-                        <button
-                          onClick={() => handlePageChange(filters.page - 1)}
-                          disabled={filters.page === 1}
-                          className="px-4 py-2 text-sm border border-gray-200
-                                     rounded-lg disabled:opacity-40
-                                     hover:bg-gray-50 transition-colors"
-                        >
-                          ← Prev
-                        </button>
-
-                        {Array.from(
-                          { length: pagination.totalPages },
-                          (_, i) => i + 1
-                        ).map((p) => (
-                          <button
-                            key={p}
-                            onClick={() => handlePageChange(p)}
-                            className={`w-9 h-9 text-sm rounded-lg font-medium
-                                        transition-colors
-                                        ${p === filters.page
-                                          ? 'bg-blue-600 text-white'
-                                          : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
-                                        }`}
-                          >
-                            {p}
-                          </button>
-                        ))}
-
-                        <button
-                          onClick={() => handlePageChange(filters.page + 1)}
-                          disabled={filters.page === pagination.totalPages}
-                          className="px-4 py-2 text-sm border border-gray-200
-                                     rounded-lg disabled:opacity-40
-                                     hover:bg-gray-50 transition-colors"
-                        >
-                          Next →
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-
-          </main>
+        {/* Results info */}
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-sm text-gray-500">
+            {loading
+              ? 'Loading courses...'
+              : `${courses.length} course${courses.length !== 1 ? 's' : ''} found`}
+          </p>
+          {hasActiveFilters && !loading && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700
+                          rounded-xl px-4 py-3 text-sm mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+                          xl:grid-cols-4 gap-5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && !error && courses.length === 0 && (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center
+                            justify-center mx-auto mb-4">
+              <Search size={32} className="text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">
+              No courses found
+            </h3>
+            <p className="text-gray-400 text-sm mb-5">
+              Try adjusting your search or filters
+            </p>
+            <button
+              onClick={clearFilters}
+              className="bg-blue-600 text-white px-6 py-2.5 rounded-xl
+                         text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
+
+        {/* Courses grid */}
+        {!loading && !error && courses.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+                            xl:grid-cols-4 gap-5">
+              {courses.map((course) => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
+                <button
+                  onClick={() => updateFilter('page', filters.page - 1)}
+                  disabled={filters.page === 1}
+                  className="px-4 py-2 text-sm border border-gray-200 rounded-lg
+                             disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                >
+                  ← Prev
+                </button>
+                {Array.from(
+                  { length: Math.min(pagination.totalPages, 5) },
+                  (_, i) => i + 1
+                ).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => updateFilter('page', p)}
+                    className={`w-9 h-9 text-sm rounded-lg font-medium
+                      transition-colors
+                      ${p === filters.page
+                        ? 'bg-blue-600 text-white'
+                        : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
+                      }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => updateFilter('page', filters.page + 1)}
+                  disabled={filters.page === pagination.totalPages}
+                  className="px-4 py-2 text-sm border border-gray-200 rounded-lg
+                             disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
       </div>
     </div>
   );
