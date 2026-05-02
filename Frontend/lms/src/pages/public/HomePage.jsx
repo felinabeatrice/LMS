@@ -248,132 +248,75 @@ const HomePage = () => {
       </section>
 
       {/* ── ABOUT US ──────────────────────────────────────── */}
-      <section id="about" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+     {/* ── ABOUT US ──────────────────────────────────────── */}
+<section id="about" className="py-20 bg-gray-50">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {/* Left */}
-            <div>
-              <span className="inline-block bg-blue-50 text-blue-600 text-xs
-                               font-semibold px-3 py-1.5 rounded-full mb-4
-                               border border-blue-100">
-                About LearnHub
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900
-                             mb-6 leading-tight">
-                We Are Dedicated to{' '}
-                <span className="text-blue-600">Quality Education</span>
-              </h2>
-              <p className="text-gray-500 leading-relaxed mb-6">
-                LearnHub is a production-grade Learning Management System
-                built to connect passionate learners with expert instructors
-                around the world. We believe that quality education should
-                be accessible, structured, and effective.
-              </p>
-              <p className="text-gray-500 leading-relaxed mb-8">
-                Our platform supports a complete learning ecosystem — from
-                course creation and admin approval, to enrollment, payments,
-                video streaming, and ratings. Every feature is designed with
-                both instructors and students in mind.
-              </p>
+    <SectionHeading
+      badge="About LearnHub"
+      title="We Are Dedicated to Quality Education"
+      subtitle="LearnHub is a production-grade Learning Management System built
+                to connect passionate learners with expert instructors around
+                the world. We believe that quality education should be
+                accessible, structured, and effective."
+    />
 
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { icon: GraduationCap, label: '10,000+ Students',  color: 'text-blue-600   bg-blue-50'   },
-                  { icon: BookOpen,      label: '500+ Courses',       color: 'text-purple-600 bg-purple-50' },
-                  { icon: Users,         label: '200+ Instructors',   color: 'text-green-600  bg-green-50'  },
-                  { icon: Award,         label: '4.8 Star Rating',    color: 'text-amber-600  bg-amber-50'  },
-                ].map((item) => (
-                  <div key={item.label}
-                    className="flex items-center gap-3 p-4 bg-white rounded-xl
-                               border border-gray-100 shadow-sm">
-                    <div className={`w-9 h-9 rounded-lg flex items-center
-                                    justify-center flex-shrink-0 ${item.color}`}>
-                      <item.icon size={18} />
-                    </div>
-                    <span className="font-semibold text-gray-800 text-sm">
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+    <div className="max-w-3xl mx-auto text-center mb-12">
+      <p className="text-gray-500 leading-relaxed text-lg">
+        Our platform supports a complete learning ecosystem — from course
+        creation and admin approval, to enrollment, payments, video streaming,
+        and ratings. Every feature is designed with both instructors and
+        students in mind.
+      </p>
+    </div>
 
-            {/* Right */}
-            <div className="relative">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700
-                              rounded-3xl p-8 text-white shadow-2xl">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex
-                                  items-center justify-center">
-                    <BookOpen size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-lg">LearnHub</p>
-                    <p className="text-blue-200 text-sm">Learning Platform</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {[
-                    'Role-based access control (Admin, Instructor, Student)',
-                    'Secure video streaming with enrollment verification',
-                    'Payment system for access control logic',
-                    'Admin-approved course publishing workflow',
-                    'Real-time ratings and review system',
-                  ].map((point) => (
-                    <div key={point} className="flex items-start gap-3">
-                      <CheckCircle size={16}
-                        className="text-blue-300 mt-0.5 flex-shrink-0" />
-                      <span className="text-blue-100 text-sm leading-relaxed">
-                        {point}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-white/20 grid
-                                grid-cols-3 gap-4 text-center">
-                  {[
-                    { value: 'PERN',   label: 'Stack' },
-                    { value: 'JWT',    label: 'Auth'  },
-                    { value: 'Prisma', label: 'ORM'   },
-                  ].map((tech) => (
-                    <div key={tech.label}>
-                      <p className="font-bold text-lg">{tech.value}</p>
-                      <p className="text-blue-200 text-xs">{tech.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Floating badge */}
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl
-                              shadow-lg px-4 py-3 border border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {['B', 'A', 'S'].map((l) => (
-                      <div key={l}
-                        className="w-8 h-8 rounded-full bg-gradient-to-br
-                                   from-blue-400 to-indigo-500 border-2
-                                   border-white flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{l}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-900">
-                      10,000+ Learners
-                    </p>
-                    <p className="text-xs text-gray-400">Joined this month</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+    {/* Stats grid */}
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
+      {[
+        {
+          icon: GraduationCap,
+          value: '10,000+',
+          label: 'Students Enrolled',
+          color: 'bg-blue-50 text-blue-600',
+        },
+        {
+          icon: BookOpen,
+          value: '500+',
+          label: 'Expert Courses',
+          color: 'bg-purple-50 text-purple-600',
+        },
+        {
+          icon: Users,
+          value: '200+',
+          label: 'Instructors',
+          color: 'bg-green-50 text-green-600',
+        },
+        {
+          icon: Award,
+          value: '4.8★',
+          label: 'Average Rating',
+          color: 'bg-amber-50 text-amber-600',
+        },
+      ].map((item) => (
+        <div key={item.label}
+          className="bg-white rounded-2xl border border-gray-100 shadow-sm
+                     p-6 text-center hover:shadow-md transition-shadow">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center
+                           mx-auto mb-4 ${item.color}`}>
+            <item.icon size={26} />
+          </div>
+          <div className="text-3xl font-extrabold text-gray-900 mb-1">
+            {item.value}
+          </div>
+          <div className="text-sm text-gray-500 font-medium">
+            {item.label}
           </div>
         </div>
-      </section>
+      ))}
+    </div>
+
+  </div>
+</section>
 
       {/* ── SERVICES ──────────────────────────────────────── */}
       <section id="services" className="py-20 bg-white">
