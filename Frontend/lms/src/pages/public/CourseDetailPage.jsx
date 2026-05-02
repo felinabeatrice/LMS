@@ -198,11 +198,6 @@ const CourseDetailPage = () => {
   const isEnrolled    = enrollment?.enrolled;
   const needsPayment  = isEnrolled && !hasAccess && !course.is_free;
 
-  // Parse learning outcomes
-  const learningOutcomes = course.learning_outcomes
-    ? course.learning_outcomes.split('\n').filter((line) => line.trim())
-    : [];
-
   const hours   = Math.floor((course.duration || 0) / 60);
   const minutes = (course.duration || 0) % 60;
 
@@ -371,30 +366,6 @@ const CourseDetailPage = () => {
                 {course.description}
               </p>
             </div>
-
-            {/* What You'll Learn */}
-            {learningOutcomes.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-6
-                              shadow-sm">
-                <h2 className="font-bold text-gray-900 text-xl mb-4">
-                  What You Will Learn
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {learningOutcomes.map((outcome, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <CheckCircle
-                        size={16}
-                        className="text-blue-600 mt-0.5 flex-shrink-0"
-                      />
-                      <span className="text-gray-700 text-sm leading-relaxed">
-                        {outcome}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Rating Form */}
             {isStudent && isEnrolled && hasAccess && (
               <div className="bg-white rounded-2xl border border-gray-200 p-6

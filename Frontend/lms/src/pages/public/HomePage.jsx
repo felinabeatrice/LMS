@@ -1,19 +1,21 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link }     from 'react-router-dom';
 import {
-  BookOpen, Users, Award, Play, Star, ChevronDown,
-  ChevronUp, Mail, Phone, ArrowRight, CheckCircle,
-  Zap, Shield, Clock, TrendingUp, GraduationCap,
-  MessageSquare, Send,
+  BookOpen, Users, Award, Star, ChevronDown, ChevronUp,
+  Mail, Phone, ArrowRight, CheckCircle, Zap, Shield,
+  TrendingUp, GraduationCap, Send, Play,
 } from 'lucide-react';
-import useAuth from '../../hooks/useAuth';
+import api        from '../../api/axios';
+import useAuth    from '../../hooks/useAuth';
+import contactImg from '../../assets/contact.jpg';
 
-// ── Reusable section heading ───────────────────────────────
+// ── Section heading ────────────────────────────────────────
 const SectionHeading = ({ badge, title, subtitle }) => (
   <div className="text-center mb-12">
     {badge && (
-      <span className="inline-block bg-blue-50 text-blue-600 text-xs font-semibold
-                       px-3 py-1.5 rounded-full mb-4 border border-blue-100">
+      <span className="inline-block bg-blue-50 text-blue-600 text-xs
+                       font-semibold px-3 py-1.5 rounded-full mb-4
+                       border border-blue-100">
         {badge}
       </span>
     )}
@@ -28,26 +30,23 @@ const SectionHeading = ({ badge, title, subtitle }) => (
   </div>
 );
 
-// ── FAQ Item ───────────────────────────────────────────────
+// ── FAQ item ───────────────────────────────────────────────
 const FAQItem = ({ question, answer }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className={`border rounded-xl transition-all duration-200
-                     ${open ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+      ${open ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-white'}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-6 py-4 text-left"
       >
         <span className={`font-semibold text-sm sm:text-base
-                          ${open ? 'text-blue-700' : 'text-gray-900'}`}>
+          ${open ? 'text-blue-700' : 'text-gray-900'}`}>
           {question}
         </span>
         <span className={`flex-shrink-0 ml-4 transition-transform duration-200
-                          ${open ? 'text-blue-600' : 'text-gray-400'}`}>
-          {open
-            ? <ChevronUp size={20} />
-            : <ChevronDown size={20} />
-          }
+          ${open ? 'text-blue-600' : 'text-gray-400'}`}>
+          {open ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </span>
       </button>
       {open && (
@@ -62,12 +61,12 @@ const FAQItem = ({ question, answer }) => {
 const HomePage = () => {
   const { user, isAdmin, isInstructor, isStudent } = useAuth();
 
-  // Contact form state
-  const [contactForm, setContactForm] = useState({
+  const [contactForm,    setContactForm]    = useState({
     name: '', email: '', message: '',
   });
-  const [contactSent, setContactSent] = useState(false);
+  const [contactSent,    setContactSent]    = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
+  const [contactError,   setContactError]   = useState('');
 
   const getDashboardLink = () => {
     if (isAdmin)      return '/admin/dashboard';
@@ -76,44 +75,51 @@ const HomePage = () => {
     return '/register';
   };
 
-  const handleContactSubmit = (e) => {
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
     setContactLoading(true);
-    setTimeout(() => {
+    setContactError('');
+    try {
+      await api.post('/contact', contactForm);
       setContactSent(true);
-      setContactLoading(false);
       setContactForm({ name: '', email: '', message: '' });
-    }, 1000);
+    } catch (err) {
+      setContactError(
+        err.response?.data?.message || 'Failed to send. Please try again.'
+      );
+    } finally {
+      setContactLoading(false);
+    }
   };
 
   const faqItems = [
     {
       question: 'How do I enroll in a course?',
-      answer: 'Simply browse our course catalog, click on any course that interests you, and click the "Enroll Now" button. Free courses give you instant access. For paid courses, complete the payment to unlock full content.',
+      answer: 'Browse our course catalog, click on any course, and click "Enroll Now". Free courses give instant access. For paid courses, complete the payment to unlock content.',
     },
     {
       question: 'Can I access course content after completing it?',
-      answer: 'Yes! Once enrolled, you have lifetime access to the course content. You can revisit lessons, re-watch videos, and review materials at any time.',
+      answer: 'Yes! Once enrolled, you have lifetime access to the course content. You can revisit lessons and re-watch videos at any time.',
     },
     {
       question: 'How do instructors get approved?',
-      answer: 'After registering as an instructor, your application is reviewed by our admin team. Once approved, you can create and publish courses. This process typically takes 24-48 hours.',
+      answer: 'After registering as an instructor, your application is reviewed by our admin team. Once approved, you can create and publish courses. This typically takes 24-48 hours.',
     },
     {
       question: 'What happens if I enroll in a paid course?',
-      answer: 'After enrolling, you will see a payment option. Complete the payment to gain full access to all course videos and materials. Your enrollment is saved even before payment.',
+      answer: 'After enrolling, you will see a payment option. Complete the payment to gain full access to all course videos and materials.',
     },
     {
       question: 'Can I rate a course?',
-      answer: 'Yes! After enrolling and gaining access to a course, you can submit a star rating (1-5) and a written review. You can also edit your rating at any time.',
+      answer: 'Yes! After enrolling and gaining access, you can submit a star rating (1-5) and a written review. You can also edit your rating at any time.',
     },
     {
       question: 'How do I become an instructor?',
-      answer: 'Register on LearnHub and select "Instructor" as your role. Submit your application and wait for admin approval. Once approved, you can start creating courses immediately.',
+      answer: 'Register on LearnHub and select "Instructor" as your role. Submit your application and wait for admin approval. Once approved, start creating courses immediately.',
     },
     {
       question: 'Are there free courses available?',
-      answer: 'Absolutely! Many instructors offer free courses on LearnHub. You can filter courses by "Free" on the courses page to find them. Free courses give you instant access upon enrollment.',
+      answer: 'Absolutely! Many instructors offer free courses. You can filter courses by "Free" on the courses page. Free courses give instant access upon enrollment.',
     },
     {
       question: 'Can I cancel my enrollment?',
@@ -121,7 +127,7 @@ const HomePage = () => {
     },
     {
       question: 'What video formats are supported?',
-      answer: 'Instructors can upload videos in MP4, WebM, and MOV formats, up to 100MB per video. All videos are streamed securely and support seeking to any point in the video.',
+      answer: 'Instructors can upload videos in MP4, WebM, and MOV formats, up to 100MB per video. All videos are streamed securely and support seeking.',
     },
     {
       question: 'How are courses reviewed before publishing?',
@@ -131,48 +137,35 @@ const HomePage = () => {
 
   const services = [
     {
-      icon: BookOpen,
-      title: 'Expert-Led Courses',
+      icon: BookOpen, title: 'Expert-Led Courses',
       desc: 'Learn from approved, qualified instructors who bring real-world experience to every lesson.',
       color: 'bg-blue-50 text-blue-600',
     },
     {
-      icon: Play,
-      title: 'HD Video Content',
+      icon: Play, title: 'HD Video Content',
       desc: 'Watch high-quality video lessons with full seeking support, at your own pace.',
       color: 'bg-purple-50 text-purple-600',
     },
     {
-      icon: Star,
-      title: 'Ratings & Reviews',
+      icon: Star, title: 'Ratings & Reviews',
       desc: 'Make informed decisions with honest ratings from verified enrolled students.',
       color: 'bg-amber-50 text-amber-600',
     },
     {
-      icon: Shield,
-      title: 'Secure Access Control',
+      icon: Shield, title: 'Secure Access Control',
       desc: 'Your course access is protected. Paid content is locked until payment is verified.',
       color: 'bg-green-50 text-green-600',
     },
     {
-      icon: Zap,
-      title: 'Instant Enrollment',
+      icon: Zap, title: 'Instant Enrollment',
       desc: 'Enroll in free courses instantly. Paid courses unlock the moment payment is confirmed.',
       color: 'bg-red-50 text-red-600',
     },
     {
-      icon: TrendingUp,
-      title: 'Track Your Progress',
+      icon: TrendingUp, title: 'Track Your Progress',
       desc: 'Monitor your enrollments, payments, and learning journey from your personal dashboard.',
       color: 'bg-indigo-50 text-indigo-600',
     },
-  ];
-
-  const steps = [
-    { step: '01', title: 'Create Account', desc: 'Register as a student or instructor in seconds. No credit card required to get started.' },
-    { step: '02', title: 'Browse Courses', desc: 'Explore hundreds of courses across categories. Filter by price, rating, and duration.' },
-    { step: '03', title: 'Enroll & Learn', desc: 'Enroll in your chosen course. Free courses are instant. Paid courses unlock after payment.' },
-    { step: '04', title: 'Rate & Grow', desc: 'Complete courses, leave reviews, and keep learning. Your dashboard tracks everything.' },
   ];
 
   return (
@@ -181,7 +174,6 @@ const HomePage = () => {
       {/* ── HERO ──────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-br
                           from-blue-600 via-blue-700 to-indigo-800 text-white">
-        {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5
                           rounded-full blur-3xl" />
@@ -215,8 +207,9 @@ const HomePage = () => {
               <Link
                 to={user ? getDashboardLink() : '/register'}
                 className="inline-flex items-center justify-center gap-2
-                           bg-white text-blue-700 font-bold px-8 py-4 rounded-xl
-                           hover:bg-blue-50 transition-colors shadow-lg text-base"
+                           bg-white text-blue-700 font-bold px-8 py-4
+                           rounded-xl hover:bg-blue-50 transition-colors
+                           shadow-lg text-base"
               >
                 {user ? 'Go to Dashboard' : 'Start Learning Free'}
                 <ArrowRight size={18} />
@@ -242,7 +235,7 @@ const HomePage = () => {
                 { value: '4.8★', label: 'Rating'   },
               ].map((s) => (
                 <div key={s.label} className="text-center">
-                  <div className="text-2xl sm:text-3xl font-extrabold text-white">
+                  <div className="text-2xl sm:text-3xl font-extrabold">
                     {s.value}
                   </div>
                   <div className="text-blue-200 text-sm mt-1">{s.label}</div>
@@ -254,8 +247,136 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* ── ABOUT US ──────────────────────────────────────── */}
+      <section id="about" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+            {/* Left */}
+            <div>
+              <span className="inline-block bg-blue-50 text-blue-600 text-xs
+                               font-semibold px-3 py-1.5 rounded-full mb-4
+                               border border-blue-100">
+                About LearnHub
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900
+                             mb-6 leading-tight">
+                We Are Dedicated to{' '}
+                <span className="text-blue-600">Quality Education</span>
+              </h2>
+              <p className="text-gray-500 leading-relaxed mb-6">
+                LearnHub is a production-grade Learning Management System
+                built to connect passionate learners with expert instructors
+                around the world. We believe that quality education should
+                be accessible, structured, and effective.
+              </p>
+              <p className="text-gray-500 leading-relaxed mb-8">
+                Our platform supports a complete learning ecosystem — from
+                course creation and admin approval, to enrollment, payments,
+                video streaming, and ratings. Every feature is designed with
+                both instructors and students in mind.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: GraduationCap, label: '10,000+ Students',  color: 'text-blue-600   bg-blue-50'   },
+                  { icon: BookOpen,      label: '500+ Courses',       color: 'text-purple-600 bg-purple-50' },
+                  { icon: Users,         label: '200+ Instructors',   color: 'text-green-600  bg-green-50'  },
+                  { icon: Award,         label: '4.8 Star Rating',    color: 'text-amber-600  bg-amber-50'  },
+                ].map((item) => (
+                  <div key={item.label}
+                    className="flex items-center gap-3 p-4 bg-white rounded-xl
+                               border border-gray-100 shadow-sm">
+                    <div className={`w-9 h-9 rounded-lg flex items-center
+                                    justify-center flex-shrink-0 ${item.color}`}>
+                      <item.icon size={18} />
+                    </div>
+                    <span className="font-semibold text-gray-800 text-sm">
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right */}
+            <div className="relative">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-700
+                              rounded-3xl p-8 text-white shadow-2xl">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex
+                                  items-center justify-center">
+                    <BookOpen size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">LearnHub</p>
+                    <p className="text-blue-200 text-sm">Learning Platform</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    'Role-based access control (Admin, Instructor, Student)',
+                    'Secure video streaming with enrollment verification',
+                    'Payment system for access control logic',
+                    'Admin-approved course publishing workflow',
+                    'Real-time ratings and review system',
+                  ].map((point) => (
+                    <div key={point} className="flex items-start gap-3">
+                      <CheckCircle size={16}
+                        className="text-blue-300 mt-0.5 flex-shrink-0" />
+                      <span className="text-blue-100 text-sm leading-relaxed">
+                        {point}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-white/20 grid
+                                grid-cols-3 gap-4 text-center">
+                  {[
+                    { value: 'PERN',   label: 'Stack' },
+                    { value: 'JWT',    label: 'Auth'  },
+                    { value: 'Prisma', label: 'ORM'   },
+                  ].map((tech) => (
+                    <div key={tech.label}>
+                      <p className="font-bold text-lg">{tech.value}</p>
+                      <p className="text-blue-200 text-xs">{tech.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Floating badge */}
+              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl
+                              shadow-lg px-4 py-3 border border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {['B', 'A', 'S'].map((l) => (
+                      <div key={l}
+                        className="w-8 h-8 rounded-full bg-gradient-to-br
+                                   from-blue-400 to-indigo-500 border-2
+                                   border-white flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">{l}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-900">
+                      10,000+ Learners
+                    </p>
+                    <p className="text-xs text-gray-400">Joined this month</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── SERVICES ──────────────────────────────────────── */}
-      <section id="services" className="py-20 bg-gray-50">
+      <section id="services" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
             badge="What We Offer"
@@ -266,7 +387,7 @@ const HomePage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((s) => (
               <div key={s.title}
-                className="bg-white rounded-2xl p-6 border border-gray-100
+                className="bg-gray-50 rounded-2xl p-6 border border-gray-100
                            shadow-sm hover:shadow-md transition-shadow">
                 <div className={`w-12 h-12 rounded-xl flex items-center
                                  justify-center mb-4 ${s.color}`}>
@@ -275,45 +396,9 @@ const HomePage = () => {
                 <h3 className="font-bold text-gray-900 text-lg mb-2">
                   {s.title}
                 </h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ──────────────────────────────────── */}
-      <section id="how-it-works" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeading
-            badge="Simple Process"
-            title="How LearnHub Works"
-            subtitle="Get started in minutes. No complicated setup required."
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((step, idx) => (
-              <div key={step.step} className="relative">
-                {/* Connector line */}
-                {idx < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-10 left-full
-                                  w-full h-0.5 bg-blue-100 z-0
-                                  transform -translate-x-1/2" />
-                )}
-                <div className="relative bg-white rounded-2xl p-6 border
-                                border-gray-100 shadow-sm text-center z-10">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600
-                                  to-indigo-600 rounded-2xl flex items-center
-                                  justify-center mx-auto mb-4 shadow-lg
-                                  shadow-blue-200">
-                    <span className="text-white font-extrabold text-lg">
-                      {step.step}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-gray-900 mb-2">{step.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">
-                    {step.desc}
-                  </p>
-                </div>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  {s.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -348,71 +433,44 @@ const HomePage = () => {
             title="Contact Us"
             subtitle="Have a question or need help? We are here for you."
           />
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12
-                          max-w-5xl mx-auto">
+                          max-w-5xl mx-auto items-center">
 
-            {/* Contact info */}
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  We would love to hear from you
-                </h3>
-                <p className="text-gray-500 leading-relaxed">
-                  Whether you have a question about courses, payments,
-                  instructor approval, or anything else — our team is
-                  ready to answer all your questions.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-blue-50
-                                rounded-xl border border-blue-100">
-                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex
-                                  items-center justify-center flex-shrink-0">
-                    <Mail size={18} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">Email</p>
-                    <p className="text-gray-900 font-semibold">
+            {/* Left — Image */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl
+                            h-[420px] sm:h-[480px]">
+              <img
+                src={contactImg}
+                alt="Contact LearnHub"
+                className="w-full h-full object-cover"
+              />
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t
+                              from-blue-900/70 via-transparent to-transparent
+                              flex items-end p-8">
+                <div className="text-white">
+                  <h3 className="text-2xl font-bold mb-2">Let's Talk</h3>
+                  <p className="text-blue-100 text-sm leading-relaxed">
+                    We typically respond within 24 hours.
+                    Our team is happy to help you with anything.
+                  </p>
+                  <div className="flex flex-col gap-2 mt-4">
+                    <div className="flex items-center gap-2 text-blue-100 text-sm">
+                      <Mail size={14} />
                       contact@learnhub.com
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-green-50
-                                rounded-xl border border-green-100">
-                  <div className="w-10 h-10 bg-green-600 rounded-lg flex
-                                  items-center justify-center flex-shrink-0">
-                    <Phone size={18} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">Phone</p>
-                    <p className="text-gray-900 font-semibold">
+                    </div>
+                    <div className="flex items-center gap-2 text-blue-100 text-sm">
+                      <Phone size={14} />
                       +1 (555) 123-4567
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-purple-50
-                                rounded-xl border border-purple-100">
-                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex
-                                  items-center justify-center flex-shrink-0">
-                    <Clock size={18} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">
-                      Support Hours
-                    </p>
-                    <p className="text-gray-900 font-semibold">
-                      Mon–Fri, 9am–6pm EST
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Contact form */}
-            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
+            {/* Right — Contact form */}
+            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-8">
               {contactSent ? (
                 <div className="h-full flex flex-col items-center
                                 justify-center text-center py-8">
@@ -436,13 +494,21 @@ const HomePage = () => {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleContactSubmit} className="space-y-4">
-                  <h3 className="font-bold text-gray-900 text-lg mb-4">
+                <form onSubmit={handleContactSubmit} className="space-y-5">
+                  <h3 className="font-bold text-gray-900 text-xl mb-2">
                     Send us a message
                   </h3>
 
+                  {contactError && (
+                    <div className="bg-red-50 border border-red-200
+                                    text-red-700 rounded-xl px-4 py-3 text-sm">
+                      {contactError}
+                    </div>
+                  )}
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium
+                                      text-gray-700 mb-1.5">
                       Your Name *
                     </label>
                     <input
@@ -460,7 +526,8 @@ const HomePage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium
+                                      text-gray-700 mb-1.5">
                       Email Address *
                     </label>
                     <input
@@ -478,12 +545,13 @@ const HomePage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label className="block text-sm font-medium
+                                      text-gray-700 mb-1.5">
                       Message *
                     </label>
                     <textarea
                       required
-                      rows={4}
+                      rows={5}
                       value={contactForm.message}
                       onChange={(e) => setContactForm({
                         ...contactForm, message: e.target.value,
@@ -521,135 +589,6 @@ const HomePage = () => {
                 </form>
               )}
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── ABOUT ─────────────────────────────────────────── */}
-      <section id="about" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-
-            {/* Left */}
-            <div>
-              <span className="inline-block bg-blue-50 text-blue-600 text-xs
-                               font-semibold px-3 py-1.5 rounded-full mb-4
-                               border border-blue-100">
-                About LearnHub
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900
-                             mb-6 leading-tight">
-                We Are Dedicated to{' '}
-                <span className="text-blue-600">Quality Education</span>
-              </h2>
-              <p className="text-gray-500 leading-relaxed mb-6">
-                LearnHub is a production-grade Learning Management System
-                built to connect passionate learners with expert instructors
-                around the world. We believe that quality education should
-                be accessible, structured, and effective.
-              </p>
-              <p className="text-gray-500 leading-relaxed mb-8">
-                Our platform supports a complete learning ecosystem — from
-                course creation and admin approval, to enrollment, payments,
-                video streaming, and ratings. Every feature is designed with
-                both instructors and students in mind.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { icon: GraduationCap, label: '10,000+ Students', color: 'text-blue-600 bg-blue-50' },
-                  { icon: BookOpen,      label: '500+ Courses',      color: 'text-purple-600 bg-purple-50' },
-                  { icon: Users,         label: '200+ Instructors',  color: 'text-green-600 bg-green-50' },
-                  { icon: Award,         label: '4.8 Star Rating',   color: 'text-amber-600 bg-amber-50' },
-                ].map((item) => (
-                  <div key={item.label}
-                    className="flex items-center gap-3 p-4 bg-white rounded-xl
-                               border border-gray-100 shadow-sm">
-                    <div className={`w-9 h-9 rounded-lg flex items-center
-                                    justify-center flex-shrink-0 ${item.color}`}>
-                      <item.icon size={18} />
-                    </div>
-                    <span className="font-semibold text-gray-800 text-sm">
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right — visual card */}
-            <div className="relative">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-700
-                              rounded-3xl p-8 text-white shadow-2xl">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex
-                                  items-center justify-center">
-                    <BookOpen size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-lg">LearnHub</p>
-                    <p className="text-blue-200 text-sm">Learning Platform</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {[
-                    'Role-based access control (Admin, Instructor, Student)',
-                    'Secure video streaming with enrollment verification',
-                    'Fake payment system for access control logic',
-                    'Admin-approved course publishing workflow',
-                    'Real-time ratings and review system',
-                  ].map((point) => (
-                    <div key={point} className="flex items-start gap-3">
-                      <CheckCircle
-                        size={16}
-                        className="text-blue-300 mt-0.5 flex-shrink-0"
-                      />
-                      <span className="text-blue-100 text-sm leading-relaxed">
-                        {point}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-white/20 grid
-                                grid-cols-3 gap-4 text-center">
-                  {[
-                    { value: 'PERN',   label: 'Stack'    },
-                    { value: 'JWT',    label: 'Auth'     },
-                    { value: 'Prisma', label: 'ORM'      },
-                  ].map((tech) => (
-                    <div key={tech.label}>
-                      <p className="font-bold text-lg text-white">{tech.value}</p>
-                      <p className="text-blue-200 text-xs">{tech.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Floating badge */}
-              <div className="absolute -bottom-4 -left-4 bg-white rounded-xl
-                              shadow-lg px-4 py-3 border border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    {['B', 'A', 'S'].map((l) => (
-                      <div key={l}
-                        className="w-8 h-8 rounded-full bg-gradient-to-br
-                                   from-blue-400 to-indigo-500 border-2
-                                   border-white flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{l}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-900">
-                      10,000+ Learners
-                    </p>
-                    <p className="text-xs text-gray-400">Joined this month</p>
-                  </div>
-                </div>
-              </div>
-            </div>
 
           </div>
         </div>
@@ -657,7 +596,7 @@ const HomePage = () => {
 
       {/* ── FINAL CTA ─────────────────────────────────────── */}
       {!user && (
-        <section className="py-20 bg-white">
+        <section className="py-20 bg-gray-50">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700
                             rounded-3xl p-12 text-white shadow-2xl
@@ -728,15 +667,13 @@ const HomePage = () => {
                 A production-grade Learning Management System connecting
                 learners and instructors worldwide.
               </p>
-              <div className="flex items-center gap-3 mt-4">
+              <div className="flex flex-col gap-2 mt-4">
                 <a href="mailto:contact@learnhub.com"
                   className="flex items-center gap-2 text-gray-400
                              hover:text-white text-sm transition-colors">
                   <Mail size={14} />
                   contact@learnhub.com
                 </a>
-              </div>
-              <div className="flex items-center gap-3 mt-2">
                 <a href="tel:+15551234567"
                   className="flex items-center gap-2 text-gray-400
                              hover:text-white text-sm transition-colors">
@@ -751,9 +688,9 @@ const HomePage = () => {
               <h4 className="font-semibold text-white mb-4">Platform</h4>
               <ul className="space-y-2">
                 {[
-                  { label: 'Browse Courses', to: '/courses' },
+                  { label: 'Browse Courses', to: '/courses'  },
                   { label: 'Register',       to: '/register' },
-                  { label: 'Login',          to: '/login' },
+                  { label: 'Login',          to: '/login'    },
                 ].map((link) => (
                   <li key={link.label}>
                     <Link to={link.to}
@@ -766,16 +703,15 @@ const HomePage = () => {
               </ul>
             </div>
 
-            {/* Scroll Links */}
+            {/* Company */}
             <div>
               <h4 className="font-semibold text-white mb-4">Company</h4>
               <ul className="space-y-2">
                 {[
-                  { label: 'About Us',    id: 'about'        },
-                  { label: 'Services',    id: 'services'     },
-                  { label: 'How It Works', id: 'how-it-works' },
-                  { label: 'FAQ',         id: 'faq'          },
-                  { label: 'Contact',     id: 'contact'      },
+                  { label: 'About Us', id: 'about'    },
+                  { label: 'Services', id: 'services' },
+                  { label: 'FAQ',      id: 'faq'      },
+                  { label: 'Contact',  id: 'contact'  },
                 ].map((link) => (
                   <li key={link.label}>
                     <button
@@ -801,11 +737,9 @@ const HomePage = () => {
             <p className="text-gray-500 text-sm">
               © 2026 LearnHub. Built with PERN Stack.
             </p>
-            <div className="flex items-center gap-2 text-gray-500 text-sm">
-              <span>Made with</span>
-              <span className="text-red-400">♥</span>
-              <span>for learners everywhere</span>
-            </div>
+            <p className="text-gray-500 text-sm">
+              Made with ♥ for learners everywhere
+            </p>
           </div>
         </div>
       </footer>

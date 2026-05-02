@@ -1,3 +1,4 @@
+const contactRoutes = require('./routes/contactRoutes');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -44,6 +45,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/courses/:id', videoRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/contact', contactRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/ratings', ratingRoutes);   
 app.use('/api/admin', adminRoutes);                       // ADD

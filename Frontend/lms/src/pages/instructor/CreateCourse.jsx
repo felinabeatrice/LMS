@@ -204,62 +204,6 @@ const CreateCourse = () => {
             </div>
           </div>
         </div>
-
-        {/* Learning Outcomes */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="font-semibold text-gray-900">
-                What Students Will Learn
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Add bullet points that describe the learning outcomes
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {outcomes.map((outcome, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center
-                                justify-center flex-shrink-0">
-                  <BookOpen size={12} className="text-blue-600" />
-                </div>
-                <input
-                  type="text"
-                  value={outcome}
-                  onChange={(e) => updateOutcome(index, e.target.value)}
-                  placeholder={`Learning outcome ${index + 1}`}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg
-                             text-sm focus:outline-none focus:ring-2
-                             focus:ring-blue-500"
-                />
-                {outcomes.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeOutcome(index)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg
-                               bg-red-50 text-red-500 hover:bg-red-100
-                               transition-colors flex-shrink-0"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={addOutcome}
-            className="mt-3 flex items-center gap-2 text-sm text-blue-600
-                       hover:text-blue-700 font-medium transition-colors"
-          >
-            <Plus size={16} />
-            Add another point
-          </button>
-        </div>
-
         {/* Pricing */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Pricing</h2>

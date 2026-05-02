@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link }                from 'react-router-dom';
 import {
-  Search, Filter, Star, Clock, Users, BookOpen,
-  ChevronDown, SlidersHorizontal, X,
+  Search, Star, Clock, Users, BookOpen,
+  SlidersHorizontal, X, ChevronRight,
 } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -29,7 +29,7 @@ const StarRating = ({ rating, count }) => (
   </div>
 );
 
-// ── Course Card ────────────────────────────────────────────
+// ── Course card ────────────────────────────────────────────
 const CourseCard = ({ course }) => {
   const thumbnailUrl = course.thumbnail_url
     ? `http://localhost:5000/uploads/thumbnails/${course.thumbnail_url}`
@@ -58,8 +58,6 @@ const CourseCard = ({ course }) => {
             <BookOpen size={40} className="text-blue-300" />
           </div>
         )}
-
-        {/* Price badge */}
         <div className="absolute top-3 right-3">
           <span className={`text-xs font-bold px-2.5 py-1 rounded-full shadow-sm
             ${course.is_free
@@ -72,38 +70,28 @@ const CourseCard = ({ course }) => {
 
       {/* Content */}
       <div className="p-5 flex flex-col flex-1">
-
-        {/* Category */}
         <div className="mb-2">
           <span className="text-xs font-medium text-blue-600 bg-blue-50
                            px-2.5 py-1 rounded-full">
             {course.category?.name || 'General'}
           </span>
         </div>
-
-        {/* Title */}
         <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1.5
                        line-clamp-2 group-hover:text-blue-600 transition-colors
                        flex-1">
           {course.title}
         </h3>
-
-        {/* Instructor */}
         <p className="text-xs text-gray-500 mb-3">
           by <span className="font-medium text-gray-700">
             {course.instructor?.name || 'Unknown'}
           </span>
         </p>
-
-        {/* Rating */}
         <div className="mb-3">
           <StarRating
             rating={course.average_rating || 0}
             count={course._count?.ratings || 0}
           />
         </div>
-
-        {/* Meta */}
         <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
           <span className="flex items-center gap-1">
             <Clock size={12} />
@@ -112,11 +100,9 @@ const CourseCard = ({ course }) => {
           <span>•</span>
           <span className="flex items-center gap-1">
             <Users size={12} />
-            {course._count?.enrollments || 0} students
+            {course._count?.enrollments || 0}
           </span>
         </div>
-
-        {/* View button */}
         <Link
           to={`/courses/${course.id}`}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white text-center
@@ -124,6 +110,7 @@ const CourseCard = ({ course }) => {
                      flex items-center justify-center gap-2"
         >
           View Course
+          <ChevronRight size={14} />
         </Link>
       </div>
     </div>
@@ -146,16 +133,16 @@ const SkeletonCard = () => (
 );
 
 const CoursesPage = () => {
-  const [courses,    setCourses]    = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState('');
-  const [pagination, setPagination] = useState({});
-  const [showFilters, setShowFilters] = useState(false);
+  const [courses,          setCourses]          = useState([]);
+  const [categories,       setCategories]       = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [loading,          setLoading]          = useState(true);
+  const [error,            setError]            = useState('');
+  const [pagination,       setPagination]       = useState({});
+  const [showFilters,      setShowFilters]      = useState(false);
 
   const [filters, setFilters] = useState({
     search:   '',
-    category: '',
     is_free:  '',
     sort:     'newest',
     duration: '',
@@ -180,40 +167,40 @@ const CoursesPage = () => {
           page:  filters.page,
           limit: filters.limit,
         };
-        if (filters.search)   params.search   = filters.search;
-        if (filters.category) params.category = filters.category;
+        if (filters.search)      params.search   = filters.search;
+        if (selectedCategory)    params.category = selectedCategory;
         if (filters.is_free !== '') params.is_free = filters.is_free;
 
         const res = await api.get('/courses', { params });
-        let courses = res.data.courses || [];
+        let list  = res.data.courses || [];
 
-        // Client-side sort
+        // Sort
         if (filters.sort === 'rating') {
-          courses = courses.sort((a, b) =>
+          list = list.sort((a, b) =>
             (b.average_rating || 0) - (a.average_rating || 0)
           );
         } else if (filters.sort === 'price_low') {
-          courses = courses.sort((a, b) =>
+          list = list.sort((a, b) =>
             parseFloat(a.price) - parseFloat(b.price)
           );
         } else if (filters.sort === 'price_high') {
-          courses = courses.sort((a, b) =>
+          list = list.sort((a, b) =>
             parseFloat(b.price) - parseFloat(a.price)
           );
         }
 
-        // Client-side duration filter
+        // Duration filter
         if (filters.duration) {
-          courses = courses.filter((c) => {
-            const hours = (c.duration || 0) / 60;
-            if (filters.duration === 'under2')   return hours < 2;
-            if (filters.duration === '2to5')     return hours >= 2 && hours <= 5;
-            if (filters.duration === 'over5')    return hours > 5;
+          list = list.filter((c) => {
+            const h = (c.duration || 0) / 60;
+            if (filters.duration === 'under2') return h < 2;
+            if (filters.duration === '2to5')   return h >= 2 && h <= 5;
+            if (filters.duration === 'over5')  return h > 5;
             return true;
           });
         }
 
-        setCourses(courses);
+        setCourses(list);
         setPagination(res.data.pagination || {});
       } catch {
         setError('Failed to load courses. Please try again.');
@@ -222,7 +209,7 @@ const CoursesPage = () => {
       }
     };
     fetchCourses();
-  }, [filters]);
+  }, [filters, selectedCategory]);
 
   const updateFilter = (key, value) => {
     setFilters((f) => ({ ...f, [key]: value, page: 1 }));
@@ -230,14 +217,14 @@ const CoursesPage = () => {
 
   const clearFilters = () => {
     setFilters({
-      search: '', category: '', is_free: '',
-      sort: 'newest', duration: '', page: 1, limit: 12,
+      search: '', is_free: '', sort: 'newest',
+      duration: '', page: 1, limit: 12,
     });
+    setSelectedCategory(null);
   };
 
-  const hasActiveFilters = filters.search || filters.category ||
-    filters.is_free || filters.duration ||
-    filters.sort !== 'newest';
+  const hasActiveFilters = filters.search || filters.is_free ||
+    filters.duration || filters.sort !== 'newest' || selectedCategory;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -245,56 +232,45 @@ const CoursesPage = () => {
       {/* Header */}
       <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">
-              Browse Courses
-            </h1>
-            <p className="text-blue-100 text-lg">
-              {pagination.total
-                ? `${pagination.total} courses available`
-                : 'Explore our full course catalog'}
-            </p>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">
+            Browse Courses
+          </h1>
+          <p className="text-blue-100 text-lg mb-6">
+            {pagination.total
+              ? `${pagination.total} courses available`
+              : 'Explore our full course catalog'}
+          </p>
 
-          {/* Search bar */}
-          <div className="mt-6 max-w-2xl">
-            <form
-              onSubmit={(e) => e.preventDefault()}
-              className="flex gap-3"
+          {/* Search */}
+          <div className="flex gap-3 max-w-2xl">
+            <div className="flex-1 relative">
+              <Search size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => updateFilter('search', e.target.value)}
+                placeholder="Search courses..."
+                className="w-full pl-11 pr-4 py-3 rounded-xl text-gray-900
+                           placeholder-gray-400 focus:outline-none focus:ring-2
+                           focus:ring-blue-300 text-sm bg-white shadow-sm"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm
+                          font-medium transition-colors border
+                          ${showFilters
+                            ? 'bg-white text-blue-700 border-white'
+                            : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                          }`}
             >
-              <div className="flex-1 relative">
-                <Search
-                  size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2
-                             text-gray-400"
-                />
-                <input
-                  type="text"
-                  value={filters.search}
-                  onChange={(e) => updateFilter('search', e.target.value)}
-                  placeholder="Search courses..."
-                  className="w-full pl-11 pr-4 py-3 rounded-xl text-gray-900
-                             placeholder-gray-400 focus:outline-none focus:ring-2
-                             focus:ring-blue-300 text-sm bg-white shadow-sm"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl
-                            text-sm font-medium transition-colors border
-                            ${showFilters
-                              ? 'bg-white text-blue-700 border-white'
-                              : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
-                            }`}
-              >
-                <SlidersHorizontal size={16} />
-                Filters
-                {hasActiveFilters && (
-                  <span className="w-2 h-2 bg-amber-400 rounded-full" />
-                )}
-              </button>
-            </form>
+              <SlidersHorizontal size={16} />
+              Filters
+              {hasActiveFilters && (
+                <span className="w-2 h-2 bg-amber-400 rounded-full" />
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -303,13 +279,10 @@ const CoursesPage = () => {
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6
-                          shadow-sm">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6
+                          mb-6 shadow-sm">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Filter size={16} />
-                Filter Courses
-              </h3>
+              <h3 className="font-semibold text-gray-900">Filter Courses</h3>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
@@ -321,29 +294,7 @@ const CoursesPage = () => {
                 </button>
               )}
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                  Category
-                </label>
-                <select
-                  value={filters.category}
-                  onChange={(e) => updateFilter('category', e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
-                             text-sm focus:outline-none focus:ring-2
-                             focus:ring-blue-500 bg-white"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Price */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Price
@@ -360,8 +311,6 @@ const CoursesPage = () => {
                   <option value="false">Paid Only</option>
                 </select>
               </div>
-
-              {/* Duration */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Duration
@@ -379,8 +328,6 @@ const CoursesPage = () => {
                   <option value="over5">Over 5 Hours</option>
                 </select>
               </div>
-
-              {/* Sort */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Sort By
@@ -398,120 +345,168 @@ const CoursesPage = () => {
                   <option value="price_high">Price: High to Low</option>
                 </select>
               </div>
-
             </div>
           </div>
         )}
 
-        {/* Results info */}
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-gray-500">
-            {loading
-              ? 'Loading courses...'
-              : `${courses.length} course${courses.length !== 1 ? 's' : ''} found`}
-          </p>
-          {hasActiveFilters && !loading && (
-            <button
-              onClick={clearFilters}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+        {/* Main layout — sidebar + grid */}
+        <div className="flex flex-col lg:flex-row gap-8">
 
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700
-                          rounded-xl px-4 py-3 text-sm mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Loading */}
-        {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-                          xl:grid-cols-4 gap-5">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && !error && courses.length === 0 && (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center
-                            justify-center mx-auto mb-4">
-              <Search size={32} className="text-gray-400" />
+          {/* ── Category Sidebar ─────────────────────────── */}
+          <aside className="w-full lg:w-56 flex-shrink-0">
+            <div className="bg-white rounded-2xl border border-gray-200
+                            overflow-hidden shadow-sm sticky top-20">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="font-bold text-gray-900 text-sm">Categories</h3>
+              </div>
+              <nav className="py-2">
+                {categories.length === 0 ? (
+                  <p className="px-5 py-3 text-xs text-gray-400">
+                    No categories found
+                  </p>
+                ) : (
+                  categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setSelectedCategory(
+                          selectedCategory === cat.id ? null : cat.id
+                        );
+                        updateFilter('page', 1);
+                      }}
+                      className={`w-full flex items-center justify-between
+                                  px-5 py-3 text-sm font-medium transition-colors
+                                  text-left
+                                  ${selectedCategory === cat.id
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-gray-700 hover:bg-gray-50'
+                                  }`}
+                    >
+                      <span>{cat.name}</span>
+                      {selectedCategory === cat.id && (
+                        <ChevronRight size={14} />
+                      )}
+                    </button>
+                  ))
+                )}
+              </nav>
             </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              No courses found
-            </h3>
-            <p className="text-gray-400 text-sm mb-5">
-              Try adjusting your search or filters
-            </p>
-            <button
-              onClick={clearFilters}
-              className="bg-blue-600 text-white px-6 py-2.5 rounded-xl
-                         text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              Clear All Filters
-            </button>
-          </div>
-        )}
+          </aside>
 
-        {/* Courses grid */}
-        {!loading && !error && courses.length > 0 && (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-                            xl:grid-cols-4 gap-5">
-              {courses.map((course) => (
-                <CourseCard key={course.id} course={course} />
-              ))}
-            </div>
+          {/* ── Course Grid ──────────────────────────────── */}
+          <main className="flex-1 min-w-0">
 
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-10">
+            {/* Results info */}
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm text-gray-500">
+                {loading
+                  ? 'Loading courses...'
+                  : `${courses.length} course${courses.length !== 1 ? 's' : ''} found`}
+              </p>
+              {selectedCategory && (
                 <button
-                  onClick={() => updateFilter('page', filters.page - 1)}
-                  disabled={filters.page === 1}
-                  className="px-4 py-2 text-sm border border-gray-200 rounded-lg
-                             disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                  onClick={() => setSelectedCategory(null)}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium
+                             flex items-center gap-1"
                 >
-                  ← Prev
+                  <X size={12} />
+                  Clear category
                 </button>
-                {Array.from(
-                  { length: Math.min(pagination.totalPages, 5) },
-                  (_, i) => i + 1
-                ).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => updateFilter('page', p)}
-                    className={`w-9 h-9 text-sm rounded-lg font-medium
-                      transition-colors
-                      ${p === filters.page
-                        ? 'bg-blue-600 text-white'
-                        : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
-                      }`}
-                  >
-                    {p}
-                  </button>
+              )}
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700
+                              rounded-xl px-4 py-3 text-sm mb-6">
+                {error}
+              </div>
+            )}
+
+            {/* Loading */}
+            {loading && (
+              <div className="grid grid-cols-1 sm:grid-cols-2
+                              xl:grid-cols-3 gap-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonCard key={i} />
                 ))}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && !error && courses.length === 0 && (
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex
+                                items-center justify-center mx-auto mb-4">
+                  <Search size={32} className="text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  No courses found
+                </h3>
+                <p className="text-gray-400 text-sm mb-5">
+                  Try adjusting your filters or selecting a different category
+                </p>
                 <button
-                  onClick={() => updateFilter('page', filters.page + 1)}
-                  disabled={filters.page === pagination.totalPages}
-                  className="px-4 py-2 text-sm border border-gray-200 rounded-lg
-                             disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                  onClick={clearFilters}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-xl
+                             text-sm font-medium hover:bg-blue-700"
                 >
-                  Next →
+                  Clear All Filters
                 </button>
               </div>
             )}
-          </>
-        )}
 
+            {/* Courses grid */}
+            {!loading && !error && courses.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2
+                                xl:grid-cols-3 gap-5">
+                  {courses.map((course) => (
+                    <CourseCard key={course.id} course={course} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-10">
+                    <button
+                      onClick={() => updateFilter('page', filters.page - 1)}
+                      disabled={filters.page === 1}
+                      className="px-4 py-2 text-sm border border-gray-200
+                                 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                    >
+                      ← Prev
+                    </button>
+                    {Array.from(
+                      { length: Math.min(pagination.totalPages, 5) },
+                      (_, i) => i + 1
+                    ).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => updateFilter('page', p)}
+                        className={`w-9 h-9 text-sm rounded-lg font-medium
+                          transition-colors
+                          ${p === filters.page
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-gray-200 hover:bg-gray-50'
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => updateFilter('page', filters.page + 1)}
+                      disabled={filters.page === pagination.totalPages}
+                      className="px-4 py-2 text-sm border border-gray-200
+                                 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+        </div>
       </div>
     </div>
   );
