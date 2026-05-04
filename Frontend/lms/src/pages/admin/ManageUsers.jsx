@@ -42,31 +42,32 @@ const ManageUsers = () => {
   }, [page, roleFilter]);
 
   const handleApprove = async (userId) => {
-    setApproving(userId);
-    try {
-      await api.patch(`/admin/instructors/${userId}/approve`);
-      setActionMsg('Instructor approved successfully.');
-      fetchUsers(page);
-    } catch (err) {
-      setActionMsg(err.response?.data?.message || 'Approval failed.');
-    } finally {
-      setApproving(null);
-    }
-  };
+  setApproving(userId);
+  setActionMsg('');
+  try {
+    await api.patch(`/admin/instructors/${userId}/approve`);
+    toast.success('Instructor approved successfully!');
+    fetchUsers(page);
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Approval failed.');
+  } finally {
+    setApproving(null);
+  }
+};
 
-  const handleDelete = async (userId, name) => {
-    if (!window.confirm(`Delete user "${name}"?`)) return;
-    setDeleting(userId);
-    try {
-      await api.delete(`/admin/users/${userId}`);
-      setActionMsg('User deleted successfully.');
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-    } catch (err) {
-      setActionMsg(err.response?.data?.message || 'Delete failed.');
-    } finally {
-      setDeleting(null);
-    }
-  };
+  const handleDelete = async () => {
+  setDeleteLoading(true);
+  try {
+    await api.delete(`/admin/users/${deleteModal.userId}`);
+    toast.success('User deleted successfully!');
+    setUsers((prev) => prev.filter((u) => u.id !== deleteModal.userId));
+    setDeleteModal({ open: false, userId: null, userName: '' });
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Delete failed.');
+  } finally {
+    setDeleteLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -119,13 +120,6 @@ const ManageUsers = () => {
             </button>
           </form>
         </div>
-
-        {actionMsg && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700
-                          rounded-xl px-4 py-3 text-sm mb-5">
-            {actionMsg}
-          </div>
-        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700

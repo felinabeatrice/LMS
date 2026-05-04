@@ -48,11 +48,13 @@ model User {
   created_at  DateTime  @default(now())
 
   // Relations
-  courses     Course[]      // instructor creates courses
-  enrollments Enrollment[]  // student enrolls in courses
-  ratings     Rating[]      // student rates courses
-  payments    Payment[]     // student makes payments
-
+  courses           Course[]
+  enrollments       Enrollment[]
+  ratings           Rating[]
+  payments          Payment[]
+  sent_messages     Message[]      @relation("MessageSender")
+  received_messages Message[]      @relation("MessageReceiver")
+  announcements     Announcement[]
   @@map("users")
 }
 
@@ -92,12 +94,14 @@ model Course {
   instructor_id Int
   category_id   Int
 
-  instructor  User         @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
-  category    Category     @relation(fields: [category_id], references: [id])
-  enrollments Enrollment[]
-  ratings     Rating[]
-  payment     Payment[]
-
+   // Relations
+  instructor    User           @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
+  category      Category       @relation(fields: [category_id], references: [id])
+  enrollments   Enrollment[]
+  ratings       Rating[]
+  payment       Payment[]
+  messages      Message[]
+  announcements Announcement[]
   @@map("courses")
 }
 // ─────────────────────────────────────────────
@@ -166,4 +170,43 @@ model Rating {
   // One rating per student per course
   @@unique([student_id, course_id])
   @@map("ratings")
+}
+// ─────────────────────────────────────────────
+// MESSAGE
+// ─────────────────────────────────────────────
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  content     String
+  is_read     Boolean  @default(false)
+  created_at  DateTime @default(now())
+
+  sender_id   Int
+  receiver_id Int
+  course_id   Int
+
+  sender      User   @relation("MessageSender",   fields: [sender_id],   references: [id], onDelete: Cascade)
+  receiver    User   @relation("MessageReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+  course      Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────
+// ANNOUNCEMENT
+// ─────────────────────────────────────────────
+
+model Announcement {
+  id         Int      @id @default(autoincrement())
+  title      String   @db.VarChar(200)
+  content    String
+  created_at DateTime @default(now())
+
+  created_by Int
+  course_id  Int?
+
+  creator    User    @relation(fields: [created_by], references: [id], onDelete: Cascade)
+  course     Course? @relation(fields: [course_id],  references: [id], onDelete: Cascade)
+
+  @@map("announcements")
 }

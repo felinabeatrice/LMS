@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Users, ClipboardList, CreditCard, Globe,
   BookOpen, PlusCircle, BookMarked, Wallet, LogOut,
-  ChevronRight,
+ ChevronRight, FolderOpen,
 } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 
