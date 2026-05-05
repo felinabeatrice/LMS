@@ -1,35 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link }                from 'react-router-dom';
 import {
-  Search, Star, Clock, Users, BookOpen,
+  Search, Clock, Users, BookOpen,
   SlidersHorizontal, X, ChevronRight,
 } from 'lucide-react';
-import api from '../../api/axios';
+import api           from '../../api/axios';
+import RatingDisplay from '../../components/RatingDisplay';
 
-// ── Star rating display ────────────────────────────────────
-const StarRating = ({ rating, count }) => (
-  <div className="flex items-center gap-1.5">
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          size={13}
-          className={star <= Math.round(rating)
-            ? 'text-amber-400 fill-amber-400'
-            : 'text-gray-200 fill-gray-200'}
-        />
-      ))}
-    </div>
-    <span className="text-xs font-bold text-gray-700">
-      {rating?.toFixed(1) || '0.0'}
-    </span>
-    {count !== undefined && (
-      <span className="text-xs text-gray-400">({count})</span>
-    )}
-  </div>
-);
-
-// ── Course card ────────────────────────────────────────────
+// ── Course card ────────────────────────────────────────────────
 const CourseCard = ({ course }) => {
   const thumbnailUrl = course.thumbnail_url
     ? `http://localhost:5000/uploads/thumbnails/${course.thumbnail_url}`
@@ -44,8 +22,8 @@ const CourseCard = ({ course }) => {
                     flex flex-col group">
 
       {/* Thumbnail */}
-      <div className="aspect-video bg-gradient-to-br from-blue-100 to-indigo-200
-                      overflow-hidden relative flex-shrink-0">
+      <div className="aspect-video bg-gradient-to-br from-blue-100
+                      to-indigo-200 overflow-hidden relative flex-shrink-0">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
@@ -59,11 +37,14 @@ const CourseCard = ({ course }) => {
           </div>
         )}
         <div className="absolute top-3 right-3">
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-full shadow-sm
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full
+                            shadow-sm
             ${course.is_free
               ? 'bg-green-500 text-white'
               : 'bg-blue-600 text-white'}`}>
-            {course.is_free ? 'FREE' : `$${parseFloat(course.price).toFixed(2)}`}
+            {course.is_free
+              ? 'FREE'
+              : `$${parseFloat(course.price).toFixed(2)}`}
           </span>
         </div>
       </div>
@@ -76,22 +57,29 @@ const CourseCard = ({ course }) => {
             {course.category?.name || 'General'}
           </span>
         </div>
+
         <h3 className="font-bold text-gray-900 text-sm leading-snug mb-1.5
-                       line-clamp-2 group-hover:text-blue-600 transition-colors
-                       flex-1">
+                       line-clamp-2 group-hover:text-blue-600
+                       transition-colors flex-1">
           {course.title}
         </h3>
+
         <p className="text-xs text-gray-500 mb-3">
-          by <span className="font-medium text-gray-700">
+          by{' '}
+          <span className="font-medium text-gray-700">
             {course.instructor?.name || 'Unknown'}
           </span>
         </p>
+
+        {/* ── Half-star rating display ── */}
         <div className="mb-3">
-          <StarRating
-            rating={course.average_rating || 0}
-            count={course._count?.ratings || 0}
+          <RatingDisplay
+            average={course.average_rating || 0}
+            total={course._count?.ratings || 0}
+            size="sm"
           />
         </div>
+
         <div className="flex items-center gap-3 text-xs text-gray-400 mb-4">
           <span className="flex items-center gap-1">
             <Clock size={12} />
@@ -103,11 +91,12 @@ const CourseCard = ({ course }) => {
             {course._count?.enrollments || 0}
           </span>
         </div>
+
         <Link
           to={`/courses/${course.id}`}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-center
-                     py-2.5 rounded-xl text-sm font-semibold transition-colors
-                     flex items-center justify-center gap-2"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white
+                     text-center py-2.5 rounded-xl text-sm font-semibold
+                     transition-colors flex items-center justify-center gap-2"
         >
           View Course
           <ChevronRight size={14} />
@@ -117,10 +106,10 @@ const CourseCard = ({ course }) => {
   );
 };
 
-// ── Skeleton ───────────────────────────────────────────────
+// ── Skeleton ───────────────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden
-                  animate-pulse">
+  <div className="bg-white rounded-2xl border border-gray-100
+                  overflow-hidden animate-pulse">
     <div className="aspect-video bg-gray-200" />
     <div className="p-5 space-y-3">
       <div className="h-3 bg-gray-200 rounded w-1/4" />
@@ -132,6 +121,7 @@ const SkeletonCard = () => (
   </div>
 );
 
+// ─────────────────────────────────────────────────────────────────
 const CoursesPage = () => {
   const [courses,          setCourses]          = useState([]);
   const [categories,       setCategories]       = useState([]);
@@ -167,14 +157,14 @@ const CoursesPage = () => {
           page:  filters.page,
           limit: filters.limit,
         };
-        if (filters.search)      params.search   = filters.search;
-        if (selectedCategory)    params.category = selectedCategory;
-        if (filters.is_free !== '') params.is_free = filters.is_free;
+        if (filters.search)        params.search   = filters.search;
+        if (selectedCategory)      params.category = selectedCategory;
+        if (filters.is_free !== '') params.is_free  = filters.is_free;
 
-        const res = await api.get('/courses', { params });
-        let list  = res.data.courses || [];
+        const res  = await api.get('/courses', { params });
+        let   list = res.data.courses || [];
 
-        // Sort
+        // Client-side sort
         if (filters.sort === 'rating') {
           list = list.sort((a, b) =>
             (b.average_rating || 0) - (a.average_rating || 0)
@@ -211,9 +201,8 @@ const CoursesPage = () => {
     fetchCourses();
   }, [filters, selectedCategory]);
 
-  const updateFilter = (key, value) => {
+  const updateFilter = (key, value) =>
     setFilters((f) => ({ ...f, [key]: value, page: 1 }));
-  };
 
   const clearFilters = () => {
     setFilters({
@@ -223,14 +212,16 @@ const CoursesPage = () => {
     setSelectedCategory(null);
   };
 
-  const hasActiveFilters = filters.search || filters.is_free ||
+  const hasActiveFilters =
+    filters.search || filters.is_free ||
     filters.duration || filters.sort !== 'newest' || selectedCategory;
 
   return (
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700
+                      text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">
             Browse Courses
@@ -245,21 +236,23 @@ const CoursesPage = () => {
           <div className="flex gap-3 max-w-2xl">
             <div className="flex-1 relative">
               <Search size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                className="absolute left-4 top-1/2 -translate-y-1/2
+                           text-gray-400" />
               <input
                 type="text"
                 value={filters.search}
                 onChange={(e) => updateFilter('search', e.target.value)}
                 placeholder="Search courses..."
                 className="w-full pl-11 pr-4 py-3 rounded-xl text-gray-900
-                           placeholder-gray-400 focus:outline-none focus:ring-2
-                           focus:ring-blue-300 text-sm bg-white shadow-sm"
+                           placeholder-gray-400 focus:outline-none
+                           focus:ring-2 focus:ring-blue-300 text-sm
+                           bg-white shadow-sm"
               />
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm
-                          font-medium transition-colors border
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl
+                          text-sm font-medium transition-colors border
                           ${showFilters
                             ? 'bg-white text-blue-700 border-white'
                             : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
@@ -277,34 +270,34 @@ const CoursesPage = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {/* Filter Panel */}
+        {/* Filter panel */}
         {showFilters && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6
-                          mb-6 shadow-sm">
+          <div className="bg-white rounded-2xl border border-gray-200
+                          p-6 mb-6 shadow-sm">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-semibold text-gray-900">Filter Courses</h3>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-xs text-red-600 hover:text-red-700 font-medium
-                             flex items-center gap-1"
+                  className="text-xs text-red-600 hover:text-red-700
+                             font-medium flex items-center gap-1"
                 >
-                  <X size={14} />
-                  Clear all
+                  <X size={14} /> Clear all
                 </button>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                <label className="block text-xs font-medium text-gray-600
+                                  mb-1.5">
                   Price
                 </label>
                 <select
                   value={filters.is_free}
                   onChange={(e) => updateFilter('is_free', e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
-                             text-sm focus:outline-none focus:ring-2
-                             focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300
+                             rounded-lg text-sm focus:outline-none
+                             focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="">All Prices</option>
                   <option value="true">Free Only</option>
@@ -312,15 +305,16 @@ const CoursesPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                <label className="block text-xs font-medium text-gray-600
+                                  mb-1.5">
                   Duration
                 </label>
                 <select
                   value={filters.duration}
                   onChange={(e) => updateFilter('duration', e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
-                             text-sm focus:outline-none focus:ring-2
-                             focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300
+                             rounded-lg text-sm focus:outline-none
+                             focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="">Any Duration</option>
                   <option value="under2">Under 2 Hours</option>
@@ -329,15 +323,16 @@ const CoursesPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                <label className="block text-xs font-medium text-gray-600
+                                  mb-1.5">
                   Sort By
                 </label>
                 <select
                   value={filters.sort}
                   onChange={(e) => updateFilter('sort', e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg
-                             text-sm focus:outline-none focus:ring-2
-                             focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300
+                             rounded-lg text-sm focus:outline-none
+                             focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="newest">Newest First</option>
                   <option value="rating">Highest Rated</option>
@@ -349,15 +344,17 @@ const CoursesPage = () => {
           </div>
         )}
 
-        {/* Main layout — sidebar + grid */}
+        {/* Layout */}
         <div className="flex flex-col lg:flex-row gap-8">
 
-          {/* ── Category Sidebar ─────────────────────────── */}
+          {/* Category sidebar */}
           <aside className="w-full lg:w-56 flex-shrink-0">
             <div className="bg-white rounded-2xl border border-gray-200
                             overflow-hidden shadow-sm sticky top-20">
               <div className="px-5 py-4 border-b border-gray-100">
-                <h3 className="font-bold text-gray-900 text-sm">Categories</h3>
+                <h3 className="font-bold text-gray-900 text-sm">
+                  Categories
+                </h3>
               </div>
               <nav className="py-2">
                 {categories.length === 0 ? (
@@ -375,8 +372,8 @@ const CoursesPage = () => {
                         updateFilter('page', 1);
                       }}
                       className={`w-full flex items-center justify-between
-                                  px-5 py-3 text-sm font-medium transition-colors
-                                  text-left
+                                  px-5 py-3 text-sm font-medium
+                                  transition-colors text-left
                                   ${selectedCategory === cat.id
                                     ? 'bg-blue-600 text-white'
                                     : 'text-gray-700 hover:bg-gray-50'
@@ -393,10 +390,8 @@ const CoursesPage = () => {
             </div>
           </aside>
 
-          {/* ── Course Grid ──────────────────────────────── */}
+          {/* Course grid */}
           <main className="flex-1 min-w-0">
-
-            {/* Results info */}
             <div className="flex items-center justify-between mb-5">
               <p className="text-sm text-gray-500">
                 {loading
@@ -406,11 +401,10 @@ const CoursesPage = () => {
               {selectedCategory && (
                 <button
                   onClick={() => setSelectedCategory(null)}
-                  className="text-xs text-red-600 hover:text-red-700 font-medium
-                             flex items-center gap-1"
+                  className="text-xs text-red-600 hover:text-red-700
+                             font-medium flex items-center gap-1"
                 >
-                  <X size={12} />
-                  Clear category
+                  <X size={12} /> Clear category
                 </button>
               )}
             </div>
@@ -422,7 +416,6 @@ const CoursesPage = () => {
               </div>
             )}
 
-            {/* Loading */}
             {loading && (
               <div className="grid grid-cols-1 sm:grid-cols-2
                               xl:grid-cols-3 gap-5">
@@ -432,7 +425,6 @@ const CoursesPage = () => {
               </div>
             )}
 
-            {/* Empty state */}
             {!loading && !error && courses.length === 0 && (
               <div className="text-center py-20">
                 <div className="w-20 h-20 bg-gray-100 rounded-2xl flex
@@ -455,7 +447,6 @@ const CoursesPage = () => {
               </div>
             )}
 
-            {/* Courses grid */}
             {!loading && !error && courses.length > 0 && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2
@@ -465,14 +456,16 @@ const CoursesPage = () => {
                   ))}
                 </div>
 
-                {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-10">
+                  <div className="flex items-center justify-center
+                                  gap-2 mt-10">
                     <button
-                      onClick={() => updateFilter('page', filters.page - 1)}
+                      onClick={() =>
+                        updateFilter('page', filters.page - 1)}
                       disabled={filters.page === 1}
                       className="px-4 py-2 text-sm border border-gray-200
-                                 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                                 rounded-lg disabled:opacity-40
+                                 hover:bg-gray-50"
                     >
                       ← Prev
                     </button>
@@ -494,10 +487,12 @@ const CoursesPage = () => {
                       </button>
                     ))}
                     <button
-                      onClick={() => updateFilter('page', filters.page + 1)}
+                      onClick={() =>
+                        updateFilter('page', filters.page + 1)}
                       disabled={filters.page === pagination.totalPages}
                       className="px-4 py-2 text-sm border border-gray-200
-                                 rounded-lg disabled:opacity-40 hover:bg-gray-50"
+                                 rounded-lg disabled:opacity-40
+                                 hover:bg-gray-50"
                     >
                       Next →
                     </button>

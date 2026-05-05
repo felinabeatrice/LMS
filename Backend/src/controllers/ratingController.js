@@ -7,7 +7,6 @@ const isValidStars = (stars) => {
   const num = parseFloat(stars);
   if (isNaN(num)) return false;
   if (num < 0.5 || num > 5) return false;
-  // Check if multiple of 0.5 (i.e., 0.5, 1.0, 1.5, 2.0, ...)
   return (num * 10) % 5 === 0;
 };
 
@@ -48,6 +47,7 @@ const submitRating = async (req, res) => {
       });
     }
 
+    // ── Check enrollment ──────────────────────────────────────────
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         student_id_course_id: {
@@ -63,6 +63,25 @@ const submitRating = async (req, res) => {
       });
     }
 
+    // ── Payment check for paid courses ────────────────────────────
+    if (!course.is_free) {
+      const payment = await prisma.payment.findFirst({
+        where: {
+          student_id,
+          course_id: parseInt(course_id),
+          status: 'completed',
+          access_granted: true,
+        }
+      });
+
+      if (!payment) {
+        return res.status(403).json({
+          message: 'You must complete payment to rate this course'
+        });
+      }
+    }
+
+    // ── Prevent duplicate ─────────────────────────────────────────
     const existingRating = await prisma.rating.findUnique({
       where: {
         student_id_course_id: {
@@ -366,7 +385,6 @@ const getAverageRating = async (courseId) => {
     _count: { stars: true },
   });
 
-  // Prisma returns Decimal as string, convert to number
   const avgNum = result._avg.stars ? parseFloat(result._avg.stars) : 0;
 
   return {
@@ -377,7 +395,6 @@ const getAverageRating = async (courseId) => {
 
 // ─────────────────────────────────────────────────────────────────
 // HELPER — STAR DISTRIBUTION
-// Now groups by star level (rounded to whole star)
 // ─────────────────────────────────────────────────────────────────
 const getStarDistribution = async (courseId) => {
   const ratings = await prisma.rating.findMany({
@@ -388,7 +405,6 @@ const getStarDistribution = async (courseId) => {
   const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
   ratings.forEach(r => {
-    // Round to nearest whole star for distribution display
     const rounded = Math.round(parseFloat(r.stars));
     if (rounded >= 1 && rounded <= 5) {
       distribution[rounded] = (distribution[rounded] || 0) + 1;
