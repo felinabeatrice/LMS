@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
-// mergeParams → allows access to :id from parent route
 
 const {
   uploadVideo,
@@ -12,10 +11,6 @@ const {
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { uploadVideo: videoUpload, uploadThumbnail: thumbUpload } = require('../config/multer');
 
-// ─────────────────────────────────────────────────────────
-// MULTER ERROR HANDLER WRAPPER
-// Catches multer errors (file too big, wrong type)
-// ─────────────────────────────────────────────────────────
 const handleMulterError = (uploadMiddleware) => {
   return (req, res, next) => {
     uploadMiddleware(req, res, (err) => {
@@ -27,7 +22,7 @@ const handleMulterError = (uploadMiddleware) => {
   };
 };
 
-// ─── INSTRUCTOR/ADMIN ONLY ────────────────────────────────
+// ─── INSTRUCTOR/ADMIN ──────────────────────────────
 router.post(
   '/upload-video',
   protect,
@@ -51,11 +46,7 @@ router.delete(
   deleteVideo
 );
 
-// ─── PROTECTED — Any logged in user ──────────────────────
-router.get(
-  '/video',
-  protect,
-  streamVideo
-);
+// ─── STREAM VIDEO — uses query token ──────────────
+router.get('/video', protect, streamVideo);
 
 module.exports = router;

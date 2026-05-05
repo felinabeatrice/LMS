@@ -293,7 +293,7 @@ const CourseDetailPage = () => {
                       ref={videoRef}
                       controls
                       className="w-full max-h-[400px]"
-                      src={`http://localhost:5000/api/courses/${course.id}/video`}
+                      src={`http://localhost:5000/api/courses/${course.id}/video?token=${localStorage.getItem('token')}`}
                     >
                       Your browser does not support video.
                     </video>

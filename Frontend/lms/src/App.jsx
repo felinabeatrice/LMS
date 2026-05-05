@@ -23,6 +23,7 @@ import CreateCourse        from './pages/instructor/CreateCourse';
 import EditCourse          from './pages/instructor/EditCourse';
 
 // Admin
+import ManageAnnouncements from './pages/admin/ManageAnnouncements';
 import AdminDashboard    from './pages/admin/AdminDashboard';
 import ManageUsers       from './pages/admin/ManageUsers';
 import PendingCourses    from './pages/admin/PendingCourses';
@@ -108,6 +109,11 @@ function App() {
                 <RoleRoute roles={['admin']}>
                   <ManageCategories />
                 </RoleRoute>
+              } />
+              <Route path="/admin/announcements" element={
+               <RoleRoute roles={['admin']}>
+                 <ManageAnnouncements />
+                 </RoleRoute>
               } />
 
               {/* FALLBACK */}

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Users, ClipboardList, CreditCard, Globe,
   BookOpen, PlusCircle, BookMarked, Wallet, LogOut,
- ChevronRight, FolderOpen,
+  ChevronRight, FolderOpen, Megaphone, MessageSquare,
 } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 
@@ -59,12 +59,13 @@ const Sidebar = ({ mobileOpen, onClose }) => {
 
   const getNavLinks = () => {
     if (isAdmin) return [
-  { to: '/admin/dashboard',       icon: Home,          label: 'Dashboard'       },
-  { to: '/admin/users',           icon: Users,         label: 'Manage Users'    },
-  { to: '/admin/courses/pending', icon: ClipboardList, label: 'Pending Courses' },
-  { to: '/admin/payments',        icon: CreditCard,    label: 'All Payments'    },
-  { to: '/admin/categories',      icon: FolderOpen,    label: 'Categories'      },
-  { to: '/courses',               icon: Globe,         label: 'Browse Courses'  },
+  { to: '/admin/dashboard',       icon: Home,          label: 'Dashboard'        },
+  { to: '/admin/users',           icon: Users,         label: 'Manage Users'     },
+  { to: '/admin/courses/pending', icon: ClipboardList, label: 'Pending Courses'  },
+  { to: '/admin/payments',        icon: CreditCard,    label: 'All Payments'     },
+  { to: '/admin/categories',      icon: FolderOpen,    label: 'Categories'       },
+  { to: '/admin/announcements',   icon: Megaphone,     label: 'Announcements'    },
+  { to: '/courses',               icon: Globe,         label: 'Browse Courses'   },
 ];
     if (isInstructor) return [
       { to: '/instructor/dashboard',      icon: Home,       label: 'Dashboard'      },
