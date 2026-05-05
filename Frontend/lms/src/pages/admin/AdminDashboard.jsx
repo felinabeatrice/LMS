@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
+import AnnouncementsList from '../../components/AnnouncementsList';
 
 const StatCard = ({ icon: Icon, label, value, sub, color, to }) => {
   const content = (
@@ -30,25 +32,29 @@ const StatCard = ({ icon: Icon, label, value, sub, color, to }) => {
 
 const AdminDashboard = () => {
   const { user } = useAuth();
-  const [stats,   setStats]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState('');
+ const [stats,   setStats]   = useState(null);
+const [loading, setLoading] = useState(true);
+const [error,   setError]   = useState('');
+const [announcements, setAnnouncements] = useState([]);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/admin/stats');
-        setStats(res.data.stats);
-      } catch {
-        setError('Failed to load dashboard stats.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
-
+ useEffect(() => {
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [statsRes, annRes] = await Promise.all([
+        api.get('/admin/stats'),
+        api.get('/announcements/platform'),
+      ]);
+      setStats(statsRes.data.stats);
+      setAnnouncements(annRes.data.announcements || []);
+    } catch {
+      setError('Failed to load dashboard data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, []);
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <div className="w-8 h-8 border-4 border-red-600 border-t-transparent
@@ -271,7 +277,20 @@ const AdminDashboard = () => {
             </div>
             <div className="text-xs text-gray-500">{action.desc}</div>
           </Link>
-        ))}
+                ))}
+      </div>
+
+      {/* Announcements Section */}
+      <div className="mt-8">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase
+                       tracking-wide mb-3">
+          Recent Announcements
+        </h2>
+        <AnnouncementsList
+          announcements={announcements}
+          title="Platform Announcements"
+          emptyMessage="No announcements created yet. Create one from the Announcements page."
+        />
       </div>
 
     </div>

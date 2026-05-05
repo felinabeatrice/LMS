@@ -2,41 +2,47 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
+import AnnouncementsList from '../../components/AnnouncementsList';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
-  const [enrollments, setEnrollments] = useState([]);
-  const [loading, setLoading] = useState(true);
+const [enrollments, setEnrollments] = useState([]);
+const [loading, setLoading] = useState(true);
+const [platformAnn, setPlatformAnn] = useState([]);
+const [courseAnn, setCourseAnn] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [enrollRes, payRes] = await Promise.all([
-          api.get('/enrollments/my-enrollments'),
-          api.get('/payments/my-payments'),
-        ]);
-        const enrolls = enrollRes.data.enrollments || [];
-        const payments = payRes.data.payments || [];
-        const totalSpent = payments
-          .filter((p) => p.status === 'completed')
-          .reduce((sum, p) => sum + parseFloat(p.amount), 0);
-        setStats({
-          totalEnrolled: enrolls.length,
-          withAccess: enrolls.filter((e) => e.has_access).length,
-          totalPayments: payments.length,
-          totalSpent: totalSpent.toFixed(2),
-        });
-        setEnrollments(enrolls.slice(0, 3));
-      } catch (err) {
-        console.error(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [enrollRes, payRes, annRes] = await Promise.all([
+        api.get('/enrollments/my-enrollments'),
+        api.get('/payments/my-payments'),
+        api.get('/announcements/student'),
+      ]);
+      const enrolls = enrollRes.data.enrollments || [];
+      const payments = payRes.data.payments || [];
+      const totalSpent = payments
+        .filter((p) => p.status === 'completed')
+        .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      setStats({
+        totalEnrolled: enrolls.length,
+        withAccess: enrolls.filter((e) => e.has_access).length,
+        totalPayments: payments.length,
+        totalSpent: totalSpent.toFixed(2),
+      });
+      setEnrollments(enrolls.slice(0, 3));
+      setPlatformAnn(annRes.data.platform || []);
+      setCourseAnn(annRes.data.course || []);
+    } catch (err) {
+      console.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, []);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -153,8 +159,22 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               ))}
-            </div>
+                        </div>
           )}
+        </div>
+
+        {/* Announcements Section */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <AnnouncementsList
+            announcements={platformAnn}
+            title="Platform News"
+            emptyMessage="No platform announcements yet"
+          />
+          <AnnouncementsList
+            announcements={courseAnn}
+            title="From Your Courses"
+            emptyMessage="No course announcements yet"
+          />
         </div>
 
       </div>

@@ -185,12 +185,6 @@ const HomePage = () => {
                         py-20 sm:py-28 lg:py-36">
           <div className="text-center max-w-4xl mx-auto">
 
-            <span className="inline-block bg-white/10 border border-white/20
-                             text-white text-xs font-semibold px-4 py-2
-                             rounded-full mb-6 backdrop-blur-sm">
-              🎓 Production-grade Learning Platform
-            </span>
-
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold
                            leading-tight mb-6">
               Learn Without{' '}
@@ -253,7 +247,6 @@ const HomePage = () => {
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     <SectionHeading
-      badge="About LearnHub"
       title="We Are Dedicated to Quality Education"
       subtitle="LearnHub is a production-grade Learning Management System built
                 to connect passionate learners with expert instructors around
@@ -322,7 +315,6 @@ const HomePage = () => {
       <section id="services" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
-            badge="What We Offer"
             title="Everything You Need to Learn"
             subtitle="A complete platform built for modern learners and instructors,
                       with all the tools you need to succeed."
@@ -352,7 +344,6 @@ const HomePage = () => {
       <section id="faq" className="py-20 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
-            badge="Got Questions?"
             title="Frequently Asked Questions"
             subtitle="Everything you need to know about LearnHub."
           />
@@ -372,7 +363,6 @@ const HomePage = () => {
       <section id="contact" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
-            badge="Get In Touch"
             title="Contact Us"
             subtitle="Have a question or need help? We are here for you."
           />

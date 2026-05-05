@@ -12,11 +12,13 @@ import CoursesPage      from './pages/public/CoursesPage';
 import CourseDetailPage from './pages/public/CourseDetailPage';
 
 // Student
+import StudentMessages from './pages/student/StudentMessages';
 import StudentDashboard from './pages/student/StudentDashboard';
 import MyEnrollments    from './pages/student/MyEnrollments';
 import MyPayments       from './pages/student/MyPayments';
 
 // Instructor
+import ManageAssignments from './pages/instructor/ManageAssignments';
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
 import MyCourses           from './pages/instructor/MyCourses';
 import CreateCourse        from './pages/instructor/CreateCourse';
@@ -61,6 +63,11 @@ function App() {
                   <MyPayments />
                 </RoleRoute>
               } />
+              <Route path="/student/messages" element={
+                <RoleRoute roles={['student']}>
+                  <StudentMessages />
+                </RoleRoute>
+              } />
 
               {/* INSTRUCTOR */}
               <Route path="/instructor/dashboard" element={
@@ -83,7 +90,11 @@ function App() {
                   <EditCourse />
                 </RoleRoute>
               } />
-
+              <Route path="/instructor/courses/:id/assignments" element={
+                <RoleRoute roles={['instructor']}>
+                  <ManageAssignments />
+                </RoleRoute>
+              } />
               {/* ADMIN */}
               <Route path="/admin/dashboard" element={
                 <RoleRoute roles={['admin']}>

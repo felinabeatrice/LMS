@@ -1,32 +1,39 @@
 const { prisma } = require('../config/db');
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// HELPER — Validate stars (0.5 to 5.0 in steps of 0.5)
+// ─────────────────────────────────────────────────────────────────
+const isValidStars = (stars) => {
+  const num = parseFloat(stars);
+  if (isNaN(num)) return false;
+  if (num < 0.5 || num > 5) return false;
+  // Check if multiple of 0.5 (i.e., 0.5, 1.0, 1.5, 2.0, ...)
+  return (num * 10) % 5 === 0;
+};
+
+// ─────────────────────────────────────────────────────────────────
 // SUBMIT RATING
 // POST /api/ratings
-// Student only — must be enrolled
-// Body: { course_id, stars, review }
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 const submitRating = async (req, res) => {
   try {
     const student_id = req.user.id;
     const { course_id, stars, review } = req.body;
 
-    // ── 1. Validate input ──────────────────────────────
-    if (!course_id || !stars) {
+    if (!course_id || stars === undefined || stars === null) {
       return res.status(400).json({
         message: 'course_id and stars are required'
       });
     }
 
-    // ── 2. Validate stars range ────────────────────────
-    const starsNum = parseInt(stars);
-    if (isNaN(starsNum) || starsNum < 1 || starsNum > 5) {
+    if (!isValidStars(stars)) {
       return res.status(400).json({
-        message: 'Stars must be a number between 1 and 5'
+        message: 'Stars must be between 0.5 and 5.0 in steps of 0.5'
       });
     }
 
-    // ── 3. Check course exists and is approved ─────────
+    const starsNum = parseFloat(stars);
+
     const course = await prisma.course.findUnique({
       where: { id: parseInt(course_id) }
     });
@@ -41,7 +48,6 @@ const submitRating = async (req, res) => {
       });
     }
 
-    // ── 4. Check student is enrolled ───────────────────
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         student_id_course_id: {
@@ -57,7 +63,6 @@ const submitRating = async (req, res) => {
       });
     }
 
-    // ── 5. Check already rated ─────────────────────────
     const existingRating = await prisma.rating.findUnique({
       where: {
         student_id_course_id: {
@@ -73,7 +78,6 @@ const submitRating = async (req, res) => {
       });
     }
 
-    // ── 6. Create rating ───────────────────────────────
     const rating = await prisma.rating.create({
       data: {
         student_id,
@@ -82,16 +86,11 @@ const submitRating = async (req, res) => {
         review: review ? review.trim() : null,
       },
       include: {
-        student: {
-          select: { id: true, name: true }
-        },
-        course: {
-          select: { id: true, title: true }
-        }
+        student: { select: { id: true, name: true } },
+        course: { select: { id: true, title: true } }
       }
     });
 
-    // ── 7. Get updated average ─────────────────────────
     const average = await getAverageRating(parseInt(course_id));
 
     return res.status(201).json({
@@ -106,19 +105,16 @@ const submitRating = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // EDIT RATING
 // PATCH /api/ratings/:id
-// Student only — own rating only
-// Body: { stars, review }
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 const editRating = async (req, res) => {
   try {
     const student_id = req.user.id;
     const { id } = req.params;
     const { stars, review } = req.body;
 
-    // ── 1. Find rating ─────────────────────────────────
     const rating = await prisma.rating.findUnique({
       where: { id: parseInt(id) }
     });
@@ -127,52 +123,42 @@ const editRating = async (req, res) => {
       return res.status(404).json({ message: 'Rating not found' });
     }
 
-    // ── 2. Ownership check ─────────────────────────────
     if (rating.student_id !== student_id) {
       return res.status(403).json({
         message: 'Access denied. This is not your rating.'
       });
     }
 
-    // ── 3. Validate stars if provided ──────────────────
     const updateData = {};
 
-    if (stars !== undefined) {
-      const starsNum = parseInt(stars);
-      if (isNaN(starsNum) || starsNum < 1 || starsNum > 5) {
+    if (stars !== undefined && stars !== null) {
+      if (!isValidStars(stars)) {
         return res.status(400).json({
-          message: 'Stars must be between 1 and 5'
+          message: 'Stars must be between 0.5 and 5.0 in steps of 0.5'
         });
       }
-      updateData.stars = starsNum;
+      updateData.stars = parseFloat(stars);
     }
 
     if (review !== undefined) {
       updateData.review = review ? review.trim() : null;
     }
 
-    // ── 4. Nothing to update ───────────────────────────
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({
         message: 'Provide stars or review to update'
       });
     }
 
-    // ── 5. Update rating ───────────────────────────────
     const updatedRating = await prisma.rating.update({
       where: { id: parseInt(id) },
       data: updateData,
       include: {
-        student: {
-          select: { id: true, name: true }
-        },
-        course: {
-          select: { id: true, title: true }
-        }
+        student: { select: { id: true, name: true } },
+        course: { select: { id: true, title: true } }
       }
     });
 
-    // ── 6. Get updated average ─────────────────────────
     const average = await getAverageRating(rating.course_id);
 
     return res.status(200).json({
@@ -187,17 +173,15 @@ const editRating = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // DELETE RATING
 // DELETE /api/ratings/:id
-// Student (own) or Admin (any)
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 const deleteRating = async (req, res) => {
   try {
     const { id: userId, role } = req.user;
     const { id } = req.params;
 
-    // ── 1. Find rating ─────────────────────────────────
     const rating = await prisma.rating.findUnique({
       where: { id: parseInt(id) }
     });
@@ -206,9 +190,6 @@ const deleteRating = async (req, res) => {
       return res.status(404).json({ message: 'Rating not found' });
     }
 
-    // ── 2. Permission check ────────────────────────────
-    // Admin can delete any rating
-    // Student can only delete own rating
     if (role === 'student' && rating.student_id !== userId) {
       return res.status(403).json({
         message: 'Access denied. This is not your rating.'
@@ -217,12 +198,10 @@ const deleteRating = async (req, res) => {
 
     const courseId = rating.course_id;
 
-    // ── 3. Delete ──────────────────────────────────────
     await prisma.rating.delete({
       where: { id: parseInt(id) }
     });
 
-    // ── 4. Get updated average ─────────────────────────
     const average = await getAverageRating(courseId);
 
     return res.status(200).json({
@@ -236,17 +215,15 @@ const deleteRating = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // GET COURSE RATINGS
 // GET /api/ratings/course/:courseId
-// Public
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 const getCourseRatings = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    // ── 1. Check course exists ─────────────────────────
     const course = await prisma.course.findUnique({
       where: { id: parseInt(courseId) },
       select: { id: true, title: true, status: true }
@@ -256,12 +233,10 @@ const getCourseRatings = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // ── 2. Pagination ──────────────────────────────────
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // ── 3. Get ratings ─────────────────────────────────
     const [ratings, total] = await Promise.all([
       prisma.rating.findMany({
         where: { course_id: parseInt(courseId) },
@@ -269,9 +244,7 @@ const getCourseRatings = async (req, res) => {
         take: limitNum,
         orderBy: { created_at: 'desc' },
         include: {
-          student: {
-            select: { id: true, name: true }
-          }
+          student: { select: { id: true, name: true } }
         }
       }),
       prisma.rating.count({
@@ -279,7 +252,6 @@ const getCourseRatings = async (req, res) => {
       })
     ]);
 
-    // ── 4. Calculate stats ─────────────────────────────
     const average = await getAverageRating(parseInt(courseId));
     const distribution = await getStarDistribution(parseInt(courseId));
 
@@ -289,7 +261,7 @@ const getCourseRatings = async (req, res) => {
       stats: {
         average_rating: average,
         total_ratings: total,
-        distribution, // { 1: 2, 2: 5, 3: 10, 4: 20, 5: 63 }
+        distribution,
       },
       ratings,
       pagination: {
@@ -306,11 +278,10 @@ const getCourseRatings = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // GET MY RATINGS
 // GET /api/ratings/my-ratings
-// Student only
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 const getMyRatings = async (req, res) => {
   try {
     const student_id = req.user.id;
@@ -324,9 +295,7 @@ const getMyRatings = async (req, res) => {
             id: true,
             title: true,
             thumbnail_url: true,
-            instructor: {
-              select: { id: true, name: true }
-            }
+            instructor: { select: { id: true, name: true } }
           }
         }
       }
@@ -344,11 +313,10 @@ const getMyRatings = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
-// GET ALL RATINGS
+// ─────────────────────────────────────────────────────────────────
+// GET ALL RATINGS (Admin)
 // GET /api/ratings
-// Admin only
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 const getAllRatings = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
@@ -363,12 +331,8 @@ const getAllRatings = async (req, res) => {
         take: limitNum,
         orderBy: { created_at: 'desc' },
         include: {
-          student: {
-            select: { id: true, name: true, email: true }
-          },
-          course: {
-            select: { id: true, title: true }
-          }
+          student: { select: { id: true, name: true, email: true } },
+          course: { select: { id: true, title: true } }
         }
       }),
       prisma.rating.count()
@@ -392,10 +356,9 @@ const getAllRatings = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // HELPER — CALCULATE AVERAGE RATING
-// Used internally after every create/update/delete
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 const getAverageRating = async (courseId) => {
   const result = await prisma.rating.aggregate({
     where: { course_id: courseId },
@@ -403,17 +366,19 @@ const getAverageRating = async (courseId) => {
     _count: { stars: true },
   });
 
+  // Prisma returns Decimal as string, convert to number
+  const avgNum = result._avg.stars ? parseFloat(result._avg.stars) : 0;
+
   return {
-    average: parseFloat((result._avg.stars || 0).toFixed(1)),
+    average: parseFloat(avgNum.toFixed(1)),
     total: result._count.stars,
   };
 };
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // HELPER — STAR DISTRIBUTION
-// Returns count per star level
-// { "1": 2, "2": 5, "3": 10, "4": 20, "5": 63 }
-// ─────────────────────────────────────────────────────────
+// Now groups by star level (rounded to whole star)
+// ─────────────────────────────────────────────────────────────────
 const getStarDistribution = async (courseId) => {
   const ratings = await prisma.rating.findMany({
     where: { course_id: courseId },
@@ -423,7 +388,11 @@ const getStarDistribution = async (courseId) => {
   const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
   ratings.forEach(r => {
-    distribution[r.stars] = (distribution[r.stars] || 0) + 1;
+    // Round to nearest whole star for distribution display
+    const rounded = Math.round(parseFloat(r.stars));
+    if (rounded >= 1 && rounded <= 5) {
+      distribution[rounded] = (distribution[rounded] || 0) + 1;
+    }
   });
 
   return distribution;

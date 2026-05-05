@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Plus, X, BookOpen } from 'lucide-react';
@@ -371,7 +372,6 @@ const EditCourse = () => {
             )}
           </div>
         </div>
-
         {/* Current status */}
         <div className="bg-white rounded-xl border border-gray-200 p-4
                         flex items-center justify-between">

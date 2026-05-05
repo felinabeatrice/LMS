@@ -74,11 +74,12 @@ const Sidebar = ({ mobileOpen, onClose }) => {
       { to: '/courses',                   icon: Globe,      label: 'Browse Courses' },
     ];
     if (isStudent) return [
-      { to: '/student/dashboard',   icon: Home,       label: 'Dashboard'      },
-      { to: '/student/enrollments', icon: BookMarked, label: 'My Enrollments' },
-      { to: '/student/payments',    icon: Wallet,     label: 'My Payments'    },
-      { to: '/courses',             icon: Globe,      label: 'Browse Courses' },
-    ];
+  { to: '/student/dashboard',   icon: Home,          label: 'Dashboard'      },
+  { to: '/student/enrollments', icon: BookMarked,    label: 'My Enrollments' },
+  { to: '/student/messages',    icon: MessageSquare, label: 'My Messages'    },
+  { to: '/student/payments',    icon: Wallet,        label: 'My Payments'    },
+  { to: '/courses',             icon: Globe,         label: 'Browse Courses' },
+  ];
     return [];
   };
 

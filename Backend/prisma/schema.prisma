@@ -7,9 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // ENUMS
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 enum Role {
   admin
@@ -18,9 +18,9 @@ enum Role {
 }
 
 enum CourseStatus {
-  pending    // waiting for admin approval
-  approved   // live and visible
-  rejected   // admin rejected it
+  pending
+  approved
+  rejected
 }
 
 enum EnrollmentStatus {
@@ -34,9 +34,9 @@ enum PaymentStatus {
   failed
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // USER
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 model User {
   id          Int       @id @default(autoincrement())
@@ -55,33 +55,34 @@ model User {
   sent_messages     Message[]      @relation("MessageSender")
   received_messages Message[]      @relation("MessageReceiver")
   announcements     Announcement[]
+  submissions       Submission[]
+
   @@map("users")
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // CATEGORY
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 model Category {
   id         Int      @id @default(autoincrement())
   name       String   @unique @db.VarChar(100)
   created_at DateTime @default(now())
 
-  // Relations
-  courses    Course[]
+  courses Course[]
 
   @@map("categories")
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // COURSE
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 model Course {
   id                Int          @id @default(autoincrement())
   title             String       @db.VarChar(200)
   description       String
-  learning_outcomes String?      // newline-separated bullet points
+  learning_outcomes String?
   price             Decimal      @default(0.00) @db.Decimal(10, 2)
   is_free           Boolean      @default(false)
   duration          Int
@@ -94,7 +95,7 @@ model Course {
   instructor_id Int
   category_id   Int
 
-   // Relations
+  // Relations
   instructor    User           @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
   category      Category       @relation(fields: [category_id], references: [id])
   enrollments   Enrollment[]
@@ -102,33 +103,33 @@ model Course {
   payment       Payment[]
   messages      Message[]
   announcements Announcement[]
+  assignments   Assignment[]
+
   @@map("courses")
 }
-// ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────
 // ENROLLMENT
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 model Enrollment {
   id          Int              @id @default(autoincrement())
   status      EnrollmentStatus @default(active)
   enrolled_at DateTime         @default(now())
 
-  // Foreign Keys
-  student_id  Int
-  course_id   Int
+  student_id Int
+  course_id  Int
 
-  // Relations
-  student     User    @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  course      Course  @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
-  // One student can only enroll once per course
   @@unique([student_id, course_id])
   @@map("enrollments")
 }
 
-// ─────────────────────────────────────────────
-// PAYMENT (fake system - access control only)
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// PAYMENT
+// ─────────────────────────────────────────────────────────────────
 
 model Payment {
   id             Int           @id @default(autoincrement())
@@ -137,64 +138,60 @@ model Payment {
   access_granted Boolean       @default(false)
   created_at     DateTime      @default(now())
 
-  // Foreign Keys
-  student_id     Int
-  course_id      Int
+  student_id Int
+  course_id  Int
 
-  // Relations
-  student        User   @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  course         Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@map("payments")
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // RATING
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 model Rating {
   id         Int      @id @default(autoincrement())
-  stars      Int      // 1 to 5 only
-  review     String?  // optional text
+  stars      Decimal  @db.Decimal(2, 1)
+  review     String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  // Foreign Keys
   student_id Int
   course_id  Int
 
-  // Relations
-  student    User   @relation(fields: [student_id], references: [id], onDelete: Cascade)
-  course     Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
-  // One rating per student per course
   @@unique([student_id, course_id])
   @@map("ratings")
 }
-// ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────
 // MESSAGE
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 model Message {
-  id          Int      @id @default(autoincrement())
-  content     String
-  is_read     Boolean  @default(false)
-  created_at  DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  content    String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
 
   sender_id   Int
   receiver_id Int
   course_id   Int
 
-  sender      User   @relation("MessageSender",   fields: [sender_id],   references: [id], onDelete: Cascade)
-  receiver    User   @relation("MessageReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
-  course      Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  sender   User   @relation("MessageSender", fields: [sender_id], references: [id], onDelete: Cascade)
+  receiver User   @relation("MessageReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+  course   Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 // ANNOUNCEMENT
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
 
 model Announcement {
   id         Int      @id @default(autoincrement())
@@ -205,8 +202,54 @@ model Announcement {
   created_by Int
   course_id  Int?
 
-  creator    User    @relation(fields: [created_by], references: [id], onDelete: Cascade)
-  course     Course? @relation(fields: [course_id],  references: [id], onDelete: Cascade)
+  creator User    @relation(fields: [created_by], references: [id], onDelete: Cascade)
+  course  Course? @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@map("announcements")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// ASSIGNMENT (Created by Instructor)
+// ─────────────────────────────────────────────────────────────────
+
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(200)
+  description String
+  due_date    DateTime
+  max_marks   Int      @default(100)
+  file_url    String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  course_id Int
+
+  course      Course       @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@map("assignments")
+}
+
+// ─────────────────────────────────────────────────────────────────
+// SUBMISSION (Student's submitted work)
+// ─────────────────────────────────────────────────────────────────
+
+model Submission {
+  id           Int       @id @default(autoincrement())
+  file_url     String
+  comment      String?
+  marks        Int?
+  feedback     String?
+  graded_at    DateTime?
+  submitted_at DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  assignment_id Int
+  student_id    Int
+
+  assignment Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@unique([assignment_id, student_id])
+  @@map("submissions")
 }

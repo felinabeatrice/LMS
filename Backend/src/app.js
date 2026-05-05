@@ -1,7 +1,9 @@
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-
+const assignmentRoutes = require('./routes/assignmentRoutes');
+const submissionRoutes = require('./routes/submissionRoutes');
 const authRoutes         = require('./routes/authRoutes');
 const courseRoutes        = require('./routes/courseRoutes');
 const categoryRoutes     = require('./routes/categoryRoutes');
@@ -29,7 +31,15 @@ app.use(
   '/uploads/thumbnails',
   express.static(path.join(__dirname, '../uploads/thumbnails'))
 );
+app.use(
+  '/uploads/assignments',
+  express.static(path.join(__dirname, '../uploads/assignments'))
+);
 
+app.use(
+  '/uploads/submissions',
+  express.static(path.join(__dirname, '../uploads/submissions'))
+);
 // ─── HEALTH CHECK ─────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({
@@ -51,7 +61,8 @@ app.use('/api/admin',         adminRoutes);
 app.use('/api/contact',       contactRoutes);
 app.use('/api/messages',      messageRoutes);
 app.use('/api/announcements', announcementRoutes);
-
+app.use('/api/courses/:id/assignments', assignmentRoutes);
+app.use('/api/assignments', submissionRoutes);
 // ─── 404 HANDLER ──────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });

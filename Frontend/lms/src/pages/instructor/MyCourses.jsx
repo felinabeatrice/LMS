@@ -1,22 +1,38 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { MessageSquare, FileText } from 'lucide-react';
 import api from '../../api/axios';
 import ConfirmModal from '../../components/ConfirmModal';
+import MessagesModal from '../../components/MessagesModal';
+import { useToast } from '../../components/Toast';
 
 const MyCourses = () => {
+  const toast = useToast();
   const [courses,  setCourses]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  // Modal state
+  // Unread counts per course
+  const [unreadCounts, setUnreadCounts] = useState({});
+
+  // Delete modal
   const [modal, setModal] = useState({
     open: false,
     courseId: null,
     courseTitle: '',
   });
 
-  useEffect(() => { fetchCourses(); }, []);
+  // Messages modal
+  const [msgModal, setMsgModal] = useState({
+    open: false,
+    course: null,
+  });
+
+  useEffect(() => {
+    fetchCourses();
+    fetchUnreadCounts();
+  }, []);
 
   const fetchCourses = async () => {
     setLoading(true);
@@ -30,6 +46,19 @@ const MyCourses = () => {
     }
   };
 
+  const fetchUnreadCounts = async () => {
+    try {
+      const res = await api.get('/messages/unread-counts');
+      const map = {};
+      (res.data.counts || []).forEach((c) => {
+        map[c.course_id] = c.unread;
+      });
+      setUnreadCounts(map);
+    } catch {
+      // silent fail
+    }
+  };
+
   const openDeleteModal = (course) => {
     setModal({ open: true, courseId: course.id, courseTitle: course.title });
   };
@@ -40,11 +69,21 @@ const MyCourses = () => {
       await api.delete(`/courses/${modal.courseId}`);
       setCourses((prev) => prev.filter((c) => c.id !== modal.courseId));
       setModal({ open: false, courseId: null, courseTitle: '' });
+      toast.success('Course deleted');
     } catch (err) {
-      alert(err.response?.data?.message || 'Delete failed.');
+      toast.error(err.response?.data?.message || 'Delete failed.');
     } finally {
       setDeleting(false);
     }
+  };
+
+  const openMessages = (course) => {
+    setMsgModal({ open: true, course });
+  };
+
+  const closeMessages = () => {
+    setMsgModal({ open: false, course: null });
+    fetchUnreadCounts();
   };
 
   if (loading) return (
@@ -56,7 +95,7 @@ const MyCourses = () => {
   return (
     <div className="max-w-5xl mx-auto">
 
-      {/* Confirm Modal */}
+      {/* Confirm Delete Modal */}
       <ConfirmModal
         isOpen={modal.open}
         onClose={() => setModal({ open: false, courseId: null, courseTitle: '' })}
@@ -66,6 +105,13 @@ const MyCourses = () => {
         confirmText="Yes, Delete"
         confirmColor="red"
         loading={deleting}
+      />
+
+      {/* Messages Modal */}
+      <MessagesModal
+        isOpen={msgModal.open}
+        onClose={closeMessages}
+        course={msgModal.course}
       />
 
       <div className="flex items-center justify-between mb-8">
@@ -93,7 +139,7 @@ const MyCourses = () => {
 
       {courses.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="text-5xl mb-4">📭</div>
+          <div className="text-5xl mb-4">📁</div>
           <h3 className="font-semibold text-gray-700 mb-2">No courses yet</h3>
           <Link
             to="/instructor/courses/create"
@@ -117,48 +163,80 @@ const MyCourses = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {courses.map((course) => (
-                  <tr key={course.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="font-medium text-gray-900 text-sm">{course.title}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        {course.is_free ? 'Free' : `$${parseFloat(course.price).toFixed(2)}`}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-gray-600 hidden md:table-cell">
-                      {course.category?.name}
-                    </td>
-                    <td className="px-5 py-4 text-sm font-medium text-gray-800 hidden sm:table-cell">
-                      {course._count?.enrollments || 0}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
-                        ${course.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          course.status === 'pending'  ? 'bg-amber-100  text-amber-700' :
-                                                         'bg-red-100    text-red-700'}`}>
-                        {course.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          to={`/instructor/courses/edit/${course.id}`}
-                          className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5
-                                     rounded-lg font-medium hover:bg-blue-100"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => openDeleteModal(course)}
-                          className="text-xs bg-red-50 text-red-700 px-3 py-1.5
-                                     rounded-lg font-medium hover:bg-red-100"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {courses.map((course) => {
+                  const unread = unreadCounts[course.id] || 0;
+                  return (
+                    <tr key={course.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="font-medium text-gray-900 text-sm">{course.title}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {course.is_free ? 'Free' : `$${parseFloat(course.price).toFixed(2)}`}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-sm text-gray-600 hidden md:table-cell">
+                        {course.category?.name}
+                      </td>
+                      <td className="px-5 py-4 text-sm font-medium text-gray-800 hidden sm:table-cell">
+                        {course._count?.enrollments || 0}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
+                          ${course.status === 'approved' ? 'bg-green-100 text-green-700' :
+                            course.status === 'pending'  ? 'bg-amber-100  text-amber-700' :
+                                                           'bg-red-100    text-red-700'}`}>
+                          {course.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link
+                            to={`/instructor/courses/edit/${course.id}`}
+                            className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5
+                                       rounded-lg font-medium hover:bg-blue-100"
+                          >
+                            Edit
+                          </Link>
+
+                          {/* 🆕 NEW Assignments Button */}
+                          <Link
+                            to={`/instructor/courses/${course.id}/assignments`}
+                            className="text-xs bg-orange-50 text-orange-700 px-3 py-1.5
+                                       rounded-lg font-medium hover:bg-orange-100
+                                       flex items-center gap-1.5"
+                          >
+                            <FileText size={12} />
+                            Assignments
+                          </Link>
+
+                          <button
+                            onClick={() => openMessages(course)}
+                            className="text-xs bg-purple-50 text-purple-700 px-3 py-1.5
+                                       rounded-lg font-medium hover:bg-purple-100
+                                       flex items-center gap-1.5 relative"
+                          >
+                            <MessageSquare size={12} />
+                            Messages
+                            {unread > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5
+                                               bg-red-500 text-white text-[10px]
+                                               font-bold w-4 h-4 rounded-full
+                                               flex items-center justify-center">
+                                {unread}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(course)}
+                            className="text-xs bg-red-50 text-red-700 px-3 py-1.5
+                                       rounded-lg font-medium hover:bg-red-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
