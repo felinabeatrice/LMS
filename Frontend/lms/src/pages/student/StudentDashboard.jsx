@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../api/axios';
 import useAuth from '../../hooks/useAuth';
 import AnnouncementsList from '../../components/AnnouncementsList';
+import { formatPrice } from '../../utils/formatPrice';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -24,14 +25,14 @@ const [courseAnn, setCourseAnn] = useState([]);
       const enrolls = enrollRes.data.enrollments || [];
       const payments = payRes.data.payments || [];
       const totalSpent = payments
-        .filter((p) => p.status === 'completed')
-        .reduce((sum, p) => sum + parseFloat(p.amount), 0);
-      setStats({
-        totalEnrolled: enrolls.length,
-        withAccess: enrolls.filter((e) => e.has_access).length,
-        totalPayments: payments.length,
-        totalSpent: totalSpent.toFixed(2),
-      });
+  .filter((p) => p.status === 'completed')
+  .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+setStats({
+  totalEnrolled: enrolls.length,
+  withAccess: enrolls.filter((e) => e.has_access).length,
+  totalPayments: payments.length,
+  totalSpent: totalSpent,   // ← keep as number
+});
       setEnrollments(enrolls.slice(0, 3));
       setPlatformAnn(annRes.data.platform || []);
       setCourseAnn(annRes.data.course || []);
@@ -79,7 +80,9 @@ const [courseAnn, setCourseAnn] = useState([]);
           </Link>
           <Link to="/student/payments" className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
             <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl mb-3 bg-amber-50">💰</div>
-            <div className="text-2xl font-bold text-gray-900 mb-0.5">${stats?.totalSpent ?? '0.00'}</div>
+            <div className="text-2xl font-bold text-gray-900 mb-0.5">
+  {formatPrice(stats?.totalSpent ?? 0)}
+</div>
             <div className="text-sm text-gray-500">Total Spent</div>
           </Link>
         </div>

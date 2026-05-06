@@ -8,6 +8,7 @@ import {
 import api        from '../../api/axios';
 import useAuth    from '../../hooks/useAuth';
 import contactImg from '../../assets/contact.jpg';
+import heroImage  from '../../assets/hero.png';
 
 // ── Section heading ────────────────────────────────────────
 const SectionHeading = ({ badge, title, subtitle }) => (
@@ -172,14 +173,19 @@ const HomePage = () => {
     <div className="bg-white">
 
       {/* ── HERO ──────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-br
-                          from-blue-600 via-blue-700 to-indigo-800 text-white">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5
-                          rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-white/5
-                          rounded-full blur-3xl" />
-        </div>
+      {/* ── HERO ──────────────────────────────────────────── */}
+<section
+  className="relative overflow-hidden text-white bg-cover bg-center"
+  style={{ backgroundImage: `url(${heroImage})` }}
+>
+<div className="absolute inset-0 bg-black/40" />
+  {/* Decorative blurs */}
+  <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/5
+                    rounded-full blur-3xl" />
+    <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-white/5
+                    rounded-full blur-3xl" />
+  </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
                         py-20 sm:py-28 lg:py-36">

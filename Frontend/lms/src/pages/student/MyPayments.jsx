@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
+import { formatPrice } from '../../utils/formatPrice';
 
 const statusColor = (s) =>
   s === 'completed' ? 'bg-green-100 text-green-700' :
@@ -52,7 +53,7 @@ const MyPayments = () => {
           </div>
           <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-right">
             <p className="text-xs text-gray-500">Total Spent</p>
-            <p className="text-lg font-bold text-gray-900">${total.toFixed(2)}</p>
+            <p className="text-lg font-bold text-gray-900">{formatPrice(total)}</p>
           </div>
         </div>
 
@@ -66,10 +67,8 @@ const MyPayments = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <div className="text-5xl mb-4">💳</div>
             <h3 className="font-semibold text-gray-700 mb-2">No payments yet</h3>
-            <Link
-              to="/courses"
-              className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
+            <Link to="/courses"
+              className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
               Browse Courses
             </Link>
           </div>
@@ -89,10 +88,8 @@ const MyPayments = () => {
                 {payments.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-4">
-                      <Link
-                        to={`/courses/${p.course_id}`}
-                        className="font-medium text-gray-900 text-sm hover:text-blue-600 transition-colors"
-                      >
+                      <Link to={`/courses/${p.course_id}`}
+                        className="font-medium text-gray-900 text-sm hover:text-blue-600 transition-colors">
                         {p.course?.title}
                       </Link>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -101,7 +98,7 @@ const MyPayments = () => {
                     </td>
                     <td className="px-5 py-4">
                       <span className="font-semibold text-gray-900 text-sm">
-                        ${parseFloat(p.amount).toFixed(2)}
+                        {formatPrice(p.amount)}
                       </span>
                     </td>
                     <td className="px-5 py-4">

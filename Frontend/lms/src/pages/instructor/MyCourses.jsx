@@ -1,12 +1,148 @@
-import { useState, useEffect } from 'react';
-import { Link }                from 'react-router-dom';
-import { MessageSquare, FileText } from 'lucide-react';
-import api           from '../../api/axios';
-import ConfirmModal  from '../../components/ConfirmModal';
-import MessagesModal from '../../components/MessagesModal';
-import RatingDisplay from '../../components/RatingDisplay';
-import { useToast }  from '../../components/Toast';
+import { useState, useEffect, useRef } from 'react';
+import { Link }                        from 'react-router-dom';
+import {
+  MessageSquare, FileText, Megaphone,
+  MoreVertical, Edit, Trash2,
+} from 'lucide-react';
+import api                       from '../../api/axios';
+import ConfirmModal              from '../../components/ConfirmModal';
+import MessagesModal             from '../../components/MessagesModal';
+import RatingDisplay             from '../../components/RatingDisplay';
+import CourseAnnouncementsModal  from '../../components/CourseAnnouncementsModal';
+import { useToast }              from '../../components/Toast';
+import { formatPrice } from '../../utils/formatPrice';
 
+// ─────────────────────────────────────────────────────────────────
+// ActionsDropdown
+// Per-row dropdown with all course actions
+// ─────────────────────────────────────────────────────────────────
+const ActionsDropdown = ({
+  course, unread,
+  onMessages, onAnnouncements, onDelete,
+}) => {
+  const [open, setOpen] = useState(false);
+  const dropdownRef     = useRef(null);
+
+  // ── Close on click outside ──────────────────────────────────
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () =>
+      document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  // ── Helper: close dropdown then run action ──────────────────
+  const handleAction = (fn) => {
+    setOpen(false);
+    fn();
+  };
+
+  return (
+    <div className="relative inline-block" ref={dropdownRef}>
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="relative w-9 h-9 rounded-lg hover:bg-gray-100
+                   transition-colors flex items-center justify-center
+                   text-gray-600"
+        title="Actions"
+      >
+        <MoreVertical size={18} />
+
+        {/* Red dot for unread messages */}
+        {unread > 0 && (
+          <span className="absolute top-1.5 right-1.5 w-2 h-2
+                           bg-red-500 rounded-full ring-2 ring-white" />
+        )}
+      </button>
+
+      {/* Dropdown menu */}
+      {open && (
+        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl
+                        border border-gray-200 shadow-lg z-30
+                        overflow-hidden animate-in fade-in
+                        slide-in-from-top-1 duration-150">
+          {/* Edit */}
+          <Link
+            to={`/instructor/courses/edit/${course.id}`}
+            className="flex items-center gap-3 px-4 py-2.5 text-sm
+                       text-gray-700 hover:bg-blue-50 hover:text-blue-700
+                       transition-colors"
+          >
+            <Edit size={15} className="text-blue-600" />
+            <span className="font-medium">Edit Course</span>
+          </Link>
+
+          {/* Assignments */}
+          <Link
+            to={`/instructor/courses/${course.id}/assignments`}
+            className="flex items-center gap-3 px-4 py-2.5 text-sm
+                       text-gray-700 hover:bg-orange-50 hover:text-orange-700
+                       transition-colors"
+          >
+            <FileText size={15} className="text-orange-600" />
+            <span className="font-medium">Assignments</span>
+          </Link>
+
+          {/* Messages */}
+          <button
+            onClick={() => handleAction(() => onMessages(course))}
+            className="w-full flex items-center justify-between
+                       px-4 py-2.5 text-sm text-gray-700
+                       hover:bg-purple-50 hover:text-purple-700
+                       transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <MessageSquare size={15} className="text-purple-600" />
+              <span className="font-medium">Messages</span>
+            </span>
+            {unread > 0 && (
+              <span className="bg-red-500 text-white text-[10px]
+                               font-bold w-5 h-5 rounded-full
+                               flex items-center justify-center">
+                {unread}
+              </span>
+            )}
+          </button>
+
+          {/* Announcements */}
+          <button
+            onClick={() => handleAction(() => onAnnouncements(course))}
+            className="w-full flex items-center gap-3 px-4 py-2.5
+                       text-sm text-gray-700
+                       hover:bg-yellow-50 hover:text-yellow-700
+                       transition-colors"
+          >
+            <Megaphone size={15} className="text-yellow-600" />
+            <span className="font-medium">Announcements</span>
+          </button>
+
+          {/* Divider */}
+          <div className="border-t border-gray-100 my-1" />
+
+          {/* Delete (red, destructive) */}
+          <button
+            onClick={() => handleAction(() => onDelete(course))}
+            className="w-full flex items-center gap-3 px-4 py-2.5
+                       text-sm text-red-600 hover:bg-red-50
+                       transition-colors"
+          >
+            <Trash2 size={15} className="text-red-500" />
+            <span className="font-medium">Delete Course</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────
+// MyCourses
+// ─────────────────────────────────────────────────────────────────
 const MyCourses = () => {
   const toast = useToast();
   const [courses,  setCourses]  = useState([]);
@@ -16,11 +152,14 @@ const MyCourses = () => {
 
   const [unreadCounts, setUnreadCounts] = useState({});
 
+  // Modals
   const [modal, setModal] = useState({
     open: false, courseId: null, courseTitle: '',
   });
-
   const [msgModal, setMsgModal] = useState({
+    open: false, course: null,
+  });
+  const [annModal, setAnnModal] = useState({
     open: false, course: null,
   });
 
@@ -73,6 +212,9 @@ const MyCourses = () => {
     fetchUnreadCounts();
   };
 
+  const openAnnouncements  = (course) => setAnnModal({ open: true, course });
+  const closeAnnouncements = () => setAnnModal({ open: false, course: null });
+
   if (loading) return (
     <div className="flex items-center justify-center py-16">
       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent
@@ -99,6 +241,12 @@ const MyCourses = () => {
         isOpen={msgModal.open}
         onClose={closeMessages}
         course={msgModal.course}
+      />
+
+      <CourseAnnouncementsModal
+        isOpen={annModal.open}
+        onClose={closeAnnouncements}
+        course={annModal.course}
       />
 
       {/* Header */}
@@ -142,8 +290,8 @@ const MyCourses = () => {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200
-                        overflow-hidden">
-          <div className="overflow-x-auto">
+                        overflow-visible">
+          <div className="overflow-x-auto overflow-y-visible">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
@@ -159,7 +307,6 @@ const MyCourses = () => {
                                  text-gray-500 uppercase hidden sm:table-cell">
                     Students
                   </th>
-                  {/* ── New rating column ── */}
                   <th className="text-left px-5 py-3 text-xs font-semibold
                                  text-gray-500 uppercase hidden lg:table-cell">
                     Rating
@@ -168,16 +315,16 @@ const MyCourses = () => {
                                  text-gray-500 uppercase">
                     Status
                   </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold
-                                 text-gray-500 uppercase">
+                  <th className="text-right px-5 py-3 text-xs font-semibold
+                                 text-gray-500 uppercase w-20">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {courses.map((course) => {
-                  const unread     = unreadCounts[course.id] || 0;
-                  const avgRating  = course.average_rating ?? 0;
+                  const unread       = unreadCounts[course.id] || 0;
+                  const avgRating    = course.average_rating ?? 0;
                   const totalRatings =
                     course._count?.ratings ?? course.ratings?.length ?? 0;
 
@@ -192,10 +339,8 @@ const MyCourses = () => {
                           {course.title}
                         </div>
                         <div className="text-xs text-gray-400 mt-0.5">
-                          {course.is_free
-                            ? 'Free'
-                            : `$${parseFloat(course.price).toFixed(2)}`}
-                        </div>
+  {course.is_free ? 'Free' : formatPrice(course.price)}
+</div>
                       </td>
 
                       {/* Category */}
@@ -210,7 +355,7 @@ const MyCourses = () => {
                         {course._count?.enrollments || 0}
                       </td>
 
-                      {/* ── Rating ── */}
+                      {/* Rating */}
                       <td className="px-5 py-4 hidden lg:table-cell">
                         <RatingDisplay
                           average={avgRating}
@@ -233,58 +378,15 @@ const MyCourses = () => {
                         </span>
                       </td>
 
-                      {/* Actions */}
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Link
-                            to={`/instructor/courses/edit/${course.id}`}
-                            className="text-xs bg-blue-50 text-blue-700
-                                       px-3 py-1.5 rounded-lg font-medium
-                                       hover:bg-blue-100"
-                          >
-                            Edit
-                          </Link>
-
-                          <Link
-                            to={`/instructor/courses/${course.id}/assignments`}
-                            className="text-xs bg-orange-50 text-orange-700
-                                       px-3 py-1.5 rounded-lg font-medium
-                                       hover:bg-orange-100 flex items-center
-                                       gap-1.5"
-                          >
-                            <FileText size={12} />
-                            Assignments
-                          </Link>
-
-                          <button
-                            onClick={() => openMessages(course)}
-                            className="text-xs bg-purple-50 text-purple-700
-                                       px-3 py-1.5 rounded-lg font-medium
-                                       hover:bg-purple-100 flex items-center
-                                       gap-1.5 relative"
-                          >
-                            <MessageSquare size={12} />
-                            Messages
-                            {unread > 0 && (
-                              <span className="absolute -top-1.5 -right-1.5
-                                               bg-red-500 text-white
-                                               text-[10px] font-bold w-4 h-4
-                                               rounded-full flex items-center
-                                               justify-center">
-                                {unread}
-                              </span>
-                            )}
-                          </button>
-
-                          <button
-                            onClick={() => openDeleteModal(course)}
-                            className="text-xs bg-red-50 text-red-700
-                                       px-3 py-1.5 rounded-lg font-medium
-                                       hover:bg-red-100"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                      {/* ── Actions: 3-dot dropdown ── */}
+                      <td className="px-5 py-4 text-right">
+                        <ActionsDropdown
+                          course={course}
+                          unread={unread}
+                          onMessages={openMessages}
+                          onAnnouncements={openAnnouncements}
+                          onDelete={openDeleteModal}
+                        />
                       </td>
                     </tr>
                   );

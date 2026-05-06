@@ -1,3 +1,4 @@
+import { formatPrice } from '../../utils/formatPrice';
 import { useState, useEffect } from 'react';
 import { Link }                from 'react-router-dom';
 import {
@@ -6,6 +7,8 @@ import {
 } from 'lucide-react';
 import api           from '../../api/axios';
 import RatingDisplay from '../../components/RatingDisplay';
+import coursesBg    from '../../assets/courses-bg.jpg';
+
 
 // ── Course card ────────────────────────────────────────────────
 const CourseCard = ({ course }) => {
@@ -42,9 +45,7 @@ const CourseCard = ({ course }) => {
             ${course.is_free
               ? 'bg-green-500 text-white'
               : 'bg-blue-600 text-white'}`}>
-            {course.is_free
-              ? 'FREE'
-              : `$${parseFloat(course.price).toFixed(2)}`}
+            {course.is_free ? 'FREE' : formatPrice(course.price)}
           </span>
         </div>
       </div>
@@ -220,20 +221,25 @@ const CoursesPage = () => {
     <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div className="bg-gradient-to-br from-blue-600 to-indigo-700
-                      text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">
-            Browse Courses
-          </h1>
-          <p className="text-blue-100 text-lg mb-6">
-            {pagination.total
-              ? `${pagination.total} courses available`
-              : 'Explore our full course catalog'}
-          </p>
+<div
+  className="relative text-white bg-cover bg-center"
+  style={{ backgroundImage: `url(${coursesBg})` }}
+>
+  <div className="absolute inset-0 bg-black/30" />
 
-          {/* Search */}
-          <div className="flex gap-3 max-w-2xl">
+  {/* Content (relative to sit above overlay) */}
+  <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <h1 className="text-3xl sm:text-4xl font-extrabold mb-3">
+      Browse Courses
+    </h1>
+    <p className="text-blue-100 text-lg mb-6">
+      {pagination.total
+        ? `${pagination.total} courses available`
+        : 'Explore our full course catalog'}
+    </p>
+
+    {/* Search */}
+    <div className="flex gap-3 max-w-2xl">
             <div className="flex-1 relative">
               <Search size={18}
                 className="absolute left-4 top-1/2 -translate-y-1/2

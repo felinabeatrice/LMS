@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Plus, X, BookOpen } from 'lucide-react';
@@ -282,16 +281,25 @@ const EditCourse = () => {
           {!form.is_free && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Price (USD) *
+                Price (₹) *
               </label>
-              <input
-                type="number" name="price" value={form.price}
-                onChange={handleChange} required={!form.is_free}
-                min={0.01} step={0.01}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg
-                           text-sm focus:outline-none focus:ring-2
-                           focus:ring-blue-500"
-              />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2
+                                 text-gray-500 text-sm font-medium">
+                  ₹
+                </span>
+                <input
+                  type="number" name="price" value={form.price}
+                  onChange={handleChange} required={!form.is_free}
+                  min={1} step={1} placeholder="e.g. 499"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-300
+                             rounded-lg text-sm focus:outline-none focus:ring-2
+                             focus:ring-blue-500"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Suggested: ₹499 – ₹4,999 for most courses
+              </p>
             </div>
           )}
         </div>
@@ -372,6 +380,7 @@ const EditCourse = () => {
             )}
           </div>
         </div>
+
         {/* Current status */}
         <div className="bg-white rounded-xl border border-gray-200 p-4
                         flex items-center justify-between">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
+import { formatPrice } from '../../utils/formatPrice';
 
 const MyEnrollments = () => {
   const [enrollments, setEnrollments] = useState([]);
@@ -66,10 +67,8 @@ const MyEnrollments = () => {
               {enrollments.length} course{enrollments.length !== 1 ? 's' : ''} enrolled
             </p>
           </div>
-          <Link
-            to="/courses"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
+          <Link to="/courses"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             Browse More
           </Link>
         </div>
@@ -84,10 +83,8 @@ const MyEnrollments = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <div className="text-5xl mb-4">📭</div>
             <h3 className="font-semibold text-gray-700 mb-2">No enrollments yet</h3>
-            <Link
-              to="/courses"
-              className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
+            <Link to="/courses"
+              className="inline-block bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
               Browse Courses
             </Link>
           </div>
@@ -111,7 +108,7 @@ const MyEnrollments = () => {
                               {en.has_access ? 'Access Granted' : 'No Access'}
                             </span>
                             <span className="text-xs text-gray-400">
-                              {course.is_free ? 'Free' : `$${parseFloat(course.price).toFixed(2)}`}
+                              {course.is_free ? 'Free' : formatPrice(course.price)}
                             </span>
                           </div>
                           <h3 className="font-semibold text-gray-900 mb-1">{course.title}</h3>
@@ -120,19 +117,15 @@ const MyEnrollments = () => {
                           </p>
                         </div>
                         <div className="flex flex-col gap-2 min-w-[140px]">
-                          <Link
-                            to={`/courses/${en.course_id}`}
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-center px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                          >
+                          <Link to={`/courses/${en.course_id}`}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-center px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                             View Course
                           </Link>
                           {needsPayment && (
-                            <button
-                              onClick={() => handlePay(en.course_id)}
+                            <button onClick={() => handlePay(en.course_id)}
                               disabled={paying === en.course_id}
-                              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              {paying === en.course_id ? 'Processing...' : `Pay $${parseFloat(course.price).toFixed(2)}`}
+                              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                              {paying === en.course_id ? 'Processing...' : `Pay ${formatPrice(course.price)}`}
                             </button>
                           )}
                         </div>

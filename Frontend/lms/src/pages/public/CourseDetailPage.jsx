@@ -4,14 +4,15 @@ import {
   Clock, Users, BookOpen, Lock, Play,
   CheckCircle, AlertCircle, MessageSquare, Send, User
 } from 'lucide-react';
-import AssignmentsViewer from '../../components/AssignmentsViewer';
-import RatingSection     from '../../components/RatingSection';
-import RatingDisplay     from '../../components/RatingDisplay';
-import api               from '../../api/axios';
-import useAuth           from '../../hooks/useAuth';
-import { useToast }      from '../../components/Toast';
+import AssignmentsViewer  from '../../components/AssignmentsViewer';
+import AnnouncementsList  from '../../components/AnnouncementsList';
+import RatingSection      from '../../components/RatingSection';
+import RatingDisplay      from '../../components/RatingDisplay';
+import api                from '../../api/axios';
+import useAuth            from '../../hooks/useAuth';
+import { useToast }       from '../../components/Toast';
+import { formatPrice }    from '../../utils/formatPrice';
 
-// ─────────────────────────────────────────────────────────────────
 const CourseDetailPage = () => {
   const { id }              = useParams();
   const navigate            = useNavigate();
@@ -25,31 +26,34 @@ const CourseDetailPage = () => {
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
 
-  // Actions
   const [enrolling,  setEnrolling]  = useState(false);
   const [paying,     setPaying]     = useState(false);
   const [actionMsg,  setActionMsg]  = useState('');
   const [actionErr,  setActionErr]  = useState('');
 
-  // Messages
   const [messages,    setMessages]    = useState([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [newMessage,  setNewMessage]  = useState('');
   const [sendingMsg,  setSendingMsg]  = useState(false);
 
-  const hasAccess    = enrollment?.has_access;
-  const isEnrolled   = enrollment?.enrolled;
-  const needsPayment = isEnrolled && !hasAccess && !course?.is_free;
+  const [courseAnnouncements, setCourseAnnouncements] = useState([]);
 
-  // ── Determine if student can rate ─────────────────────────────
-  // Free course  → enrolled
-  // Paid course  → enrolled + has_access (payment completed)
+  const isAdmin      = user?.role === 'admin';
+  const isInstructor = user?.role === 'instructor';
+
+  const hasAccess =
+    isAdmin || isInstructor || enrollment?.has_access;
+
+  const isEnrolled   = enrollment?.enrolled;
+  const needsPayment =
+    isStudent && isEnrolled && !enrollment?.has_access && !course?.is_free;
+
   const canRate =
     isStudent &&
     isEnrolled &&
     (course?.is_free ? true : hasAccess);
 
-  // 1. Fetch course
+  // Fetch course
   useEffect(() => {
     const fetchCourse = async () => {
       setLoading(true);
@@ -65,7 +69,7 @@ const CourseDetailPage = () => {
     fetchCourse();
   }, [id]);
 
-  // 2. Check enrollment
+  // Check enrollment
   useEffect(() => {
     if (!user || !isStudent) return;
     const checkEnrollment = async () => {
@@ -77,7 +81,7 @@ const CourseDetailPage = () => {
     checkEnrollment();
   }, [id, user, isStudent]);
 
-  // 3. Fetch Messages (only if student has access)
+  // Fetch Messages
   useEffect(() => {
     if (!user || !isStudent || !hasAccess) return;
     const fetchMessages = async () => {
@@ -93,12 +97,22 @@ const CourseDetailPage = () => {
     fetchMessages();
   }, [id, user, isStudent, hasAccess]);
 
-  // Scroll chat to bottom
+  // Fetch announcements
+  useEffect(() => {
+    if (!user || !isStudent || !hasAccess) return;
+    const fetchAnn = async () => {
+      try {
+        const res = await api.get(`/announcements/course/${id}`);
+        setCourseAnnouncements(res.data.announcements || []);
+      } catch { }
+    };
+    fetchAnn();
+  }, [id, user, isStudent, hasAccess]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ── Enroll ────────────────────────────────────────────────────
   const handleEnroll = async () => {
     if (!user) { navigate('/login'); return; }
     setEnrolling(true);
@@ -116,7 +130,6 @@ const CourseDetailPage = () => {
     }
   };
 
-  // ── Pay ───────────────────────────────────────────────────────
   const handlePay = async () => {
     setPaying(true);
     setActionMsg('');
@@ -141,7 +154,6 @@ const CourseDetailPage = () => {
     }
   };
 
-  // ── Send message ──────────────────────────────────────────────
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
@@ -168,7 +180,6 @@ const CourseDetailPage = () => {
       timeStyle: 'short',
     });
 
-  // ── Loading state ─────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent
@@ -176,7 +187,6 @@ const CourseDetailPage = () => {
     </div>
   );
 
-  // ── Error state ───────────────────────────────────────────────
   if (error || !course) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
@@ -200,21 +210,18 @@ const CourseDetailPage = () => {
   const hours   = Math.floor((course.duration || 0) / 60);
   const minutes = (course.duration || 0) % 60;
 
-  // ── Average + total from course data ─────────────────────────
   const avgRating   = course.average_rating  ?? 0;
   const totalRating = course._count?.ratings ?? course.ratings?.length ?? 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* ── Hero ───────────────────────────────────────────────── */}
+      {/* Hero */}
       <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-          {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-            <Link to="/courses"
-              className="hover:text-white transition-colors">
+            <Link to="/courses" className="hover:text-white transition-colors">
               Courses
             </Link>
             <span>/</span>
@@ -235,7 +242,6 @@ const CourseDetailPage = () => {
                 {course.title}
               </h1>
 
-              {/* Rating display in hero */}
               <div className="flex flex-wrap items-center gap-4 mb-4 text-sm">
                 <RatingDisplay
                   average={avgRating}
@@ -260,38 +266,27 @@ const CourseDetailPage = () => {
               </p>
             </div>
 
-            {/* Desktop price card */}
             <div className="hidden lg:block">
               <PriceCard
-                course={course}
-                user={user}
-                isStudent={isStudent}
-                isEnrolled={isEnrolled}
-                hasAccess={hasAccess}
-                needsPayment={needsPayment}
-                enrolling={enrolling}
-                paying={paying}
-                actionMsg={actionMsg}
-                actionErr={actionErr}
-                onEnroll={handleEnroll}
-                onPay={handlePay}
-                navigate={navigate}
-                avgRating={avgRating}
-                totalRating={totalRating}
+                course={course} user={user} isStudent={isStudent}
+                isEnrolled={isEnrolled} hasAccess={hasAccess}
+                needsPayment={needsPayment} enrolling={enrolling}
+                paying={paying} actionMsg={actionMsg} actionErr={actionErr}
+                onEnroll={handleEnroll} onPay={handlePay} navigate={navigate}
+                avgRating={avgRating} totalRating={totalRating}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Body ───────────────────────────────────────────────── */}
+      {/* Body */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* ── Main column ──────────────────────────────────── */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Video section */}
+            {/* Video */}
             <div className="bg-white rounded-2xl border border-gray-200
                             overflow-hidden shadow-sm">
               {hasAccess && course.video_url ? (
@@ -320,11 +315,8 @@ const CourseDetailPage = () => {
                                   from-blue-100 to-indigo-200
                                   relative overflow-hidden">
                     {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt={course.title}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={thumbnailUrl} alt={course.title}
+                        className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center
                                       justify-center">
@@ -362,7 +354,7 @@ const CourseDetailPage = () => {
               )}
             </div>
 
-            {/* Messages section (student + has access) */}
+            {/* Messages */}
             {isStudent && hasAccess && (
               <div className="bg-white rounded-2xl border border-gray-200
                               p-6 shadow-sm">
@@ -384,7 +376,6 @@ const CourseDetailPage = () => {
 
                 <div className="bg-gray-50 rounded-xl border border-gray-200
                                 flex flex-col h-[400px]">
-                  {/* Message list */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {loadingMsgs ? (
                       <div className="flex justify-center py-10">
@@ -407,22 +398,13 @@ const CourseDetailPage = () => {
                       messages.map((msg) => {
                         const isMine = msg.sender_id === user?.id;
                         return (
-                          <div
-                            key={msg.id}
-                            className={`flex ${isMine
-                              ? 'justify-end'
-                              : 'justify-start'}`}
-                          >
-                            <div className={`max-w-[80%] ${isMine
-                              ? 'items-end'
-                              : 'items-start'}`}
-                            >
+                          <div key={msg.id}
+                            className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] ${isMine ? 'items-end' : 'items-start'}`}>
                               {!isMine && (
-                                <div className="flex items-center gap-1.5
-                                                mb-1 ml-1">
+                                <div className="flex items-center gap-1.5 mb-1 ml-1">
                                   <User size={10} className="text-gray-400" />
-                                  <p className="text-[11px] font-medium
-                                                text-gray-500">
+                                  <p className="text-[11px] font-medium text-gray-500">
                                     {msg.sender?.name}
                                   </p>
                                 </div>
@@ -445,31 +427,23 @@ const CourseDetailPage = () => {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Message input */}
-                  <form
-                    onSubmit={handleSendMessage}
+                  <form onSubmit={handleSendMessage}
                     className="border-t border-gray-200 p-3 bg-white
-                               rounded-b-xl flex items-center gap-2"
-                  >
-                    <input
-                      type="text"
-                      value={newMessage}
+                               rounded-b-xl flex items-center gap-2">
+                    <input type="text" value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Ask a question..."
                       disabled={sendingMsg}
                       className="flex-1 px-4 py-2.5 border border-gray-300
                                  rounded-xl text-sm focus:outline-none
                                  focus:ring-2 focus:ring-blue-500
-                                 disabled:opacity-50"
-                    />
-                    <button
-                      type="submit"
+                                 disabled:opacity-50" />
+                    <button type="submit"
                       disabled={sendingMsg || !newMessage.trim()}
                       className="bg-blue-600 hover:bg-blue-700 text-white
                                  p-2.5 rounded-xl transition-colors
                                  disabled:opacity-50 flex items-center
-                                 justify-center w-11 h-11"
-                    >
+                                 justify-center w-11 h-11">
                       {sendingMsg ? (
                         <div className="w-4 h-4 border-2 border-white
                                         border-t-transparent rounded-full
@@ -483,7 +457,16 @@ const CourseDetailPage = () => {
               </div>
             )}
 
-            {/* Assignments (student + has access) */}
+            {/* Course Announcements */}
+            {isStudent && hasAccess && (
+              <AnnouncementsList
+                announcements={courseAnnouncements}
+                title="Course Announcements"
+                emptyMessage="No announcements from your instructor yet"
+              />
+            )}
+
+            {/* Assignments */}
             {isStudent && hasAccess && (
               <AssignmentsViewer courseId={course.id} />
             )}
@@ -494,13 +477,12 @@ const CourseDetailPage = () => {
               <h2 className="font-bold text-gray-900 text-xl mb-4">
                 About This Course
               </h2>
-              <p className="text-gray-600 leading-relaxed whitespace-pre-line
-                            text-sm">
+              <p className="text-gray-600 leading-relaxed whitespace-pre-line text-sm">
                 {course.description}
               </p>
             </div>
 
-            {/* ── Full Udemy-style Rating Section ─────────────── */}
+            {/* Rating */}
             <div className="bg-white rounded-2xl border border-gray-200
                             p-6 shadow-sm">
               <RatingSection
@@ -510,41 +492,26 @@ const CourseDetailPage = () => {
                 hasAccess={canRate}
               />
             </div>
-
           </div>
-
-          {/* ── Sidebar ────────────────────────────────────────── */}
 
           {/* Mobile price card */}
           <div className="lg:hidden">
             <PriceCard
-              course={course}
-              user={user}
-              isStudent={isStudent}
-              isEnrolled={isEnrolled}
-              hasAccess={hasAccess}
-              needsPayment={needsPayment}
-              enrolling={enrolling}
-              paying={paying}
-              actionMsg={actionMsg}
-              actionErr={actionErr}
-              onEnroll={handleEnroll}
-              onPay={handlePay}
-              navigate={navigate}
-              avgRating={avgRating}
-              totalRating={totalRating}
+              course={course} user={user} isStudent={isStudent}
+              isEnrolled={isEnrolled} hasAccess={hasAccess}
+              needsPayment={needsPayment} enrolling={enrolling}
+              paying={paying} actionMsg={actionMsg} actionErr={actionErr}
+              onEnroll={handleEnroll} onPay={handlePay} navigate={navigate}
+              avgRating={avgRating} totalRating={totalRating}
             />
           </div>
-
         </div>
       </div>
     </div>
   );
 };
 
-// ─────────────────────────────────────────────────────────────────
 // PriceCard
-// ─────────────────────────────────────────────────────────────────
 const PriceCard = ({
   course, user, isStudent, isEnrolled, hasAccess, needsPayment,
   enrolling, paying, actionMsg, actionErr, onEnroll, onPay, navigate,
@@ -557,9 +524,7 @@ const PriceCard = ({
     <div className="bg-white rounded-2xl border border-gray-200 p-6
                     shadow-lg sticky top-20">
       <div className="text-3xl font-extrabold text-gray-900 mb-1">
-        {course.is_free
-          ? 'Free'
-          : `$${parseFloat(course.price).toFixed(2)}`}
+        {course.is_free ? 'Free' : formatPrice(course.price)}
       </div>
       {course.is_free && (
         <p className="text-green-600 text-sm font-medium mb-4">
@@ -592,8 +557,6 @@ const PriceCard = ({
             {course._count?.enrollments || 0}
           </span>
         </div>
-
-        {/* Rating row — now uses RatingDisplay */}
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-500">Rating</span>
           <RatingDisplay
@@ -607,41 +570,33 @@ const PriceCard = ({
 
       {actionMsg && (
         <div className="bg-green-50 border border-green-200 text-green-700
-                        rounded-xl px-3 py-2 text-sm mb-3 flex items-center
-                        gap-2">
+                        rounded-xl px-3 py-2 text-sm mb-3 flex items-center gap-2">
           <CheckCircle size={14} />
           {actionMsg}
         </div>
       )}
       {actionErr && (
         <div className="bg-red-50 border border-red-200 text-red-700
-                        rounded-xl px-3 py-2 text-sm mb-3 flex items-center
-                        gap-2">
+                        rounded-xl px-3 py-2 text-sm mb-3 flex items-center gap-2">
           <AlertCircle size={14} />
           {actionErr}
         </div>
       )}
 
-      {/* CTA buttons */}
       {!user && (
-        <button
-          onClick={() => navigate('/login')}
+        <button onClick={() => navigate('/login')}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white
                      font-bold py-3 rounded-xl transition-colors flex
-                     items-center justify-center gap-2"
-        >
+                     items-center justify-center gap-2">
           <Lock size={16} /> Login to Enroll
         </button>
       )}
 
       {user && isStudent && !isEnrolled && (
-        <button
-          onClick={onEnroll}
-          disabled={enrolling}
+        <button onClick={onEnroll} disabled={enrolling}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
                      text-white font-bold py-3 rounded-xl transition-colors
-                     flex items-center justify-center gap-2"
-        >
+                     flex items-center justify-center gap-2">
           {enrolling ? (
             <>
               <div className="w-4 h-4 border-2 border-white
@@ -658,14 +613,11 @@ const PriceCard = ({
       )}
 
       {user && isStudent && needsPayment && (
-        <button
-          onClick={onPay}
-          disabled={paying}
+        <button onClick={onPay} disabled={paying}
           className="w-full bg-green-600 hover:bg-green-700
                      disabled:bg-green-400 text-white font-bold py-3
                      rounded-xl transition-colors flex items-center
-                     justify-center gap-2"
-        >
+                     justify-center gap-2">
           {paying ? (
             <>
               <div className="w-4 h-4 border-2 border-white
@@ -675,7 +627,7 @@ const PriceCard = ({
           ) : (
             <>
               <CheckCircle size={16} />
-              Pay ${parseFloat(course.price).toFixed(2)} — Unlock
+              Pay {formatPrice(course.price)} — Unlock
             </>
           )}
         </button>
@@ -700,7 +652,6 @@ const PriceCard = ({
         </div>
       )}
 
-      {/* Includes list */}
       <div className="mt-5 pt-5 border-t border-gray-100">
         <p className="text-xs font-semibold text-gray-700 mb-3
                       uppercase tracking-wide">

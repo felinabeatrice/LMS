@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -6,9 +5,10 @@ import {
   GraduationCap, CheckCircle, ClipboardList,
   TrendingUp, Globe, UserCheck,
 } from 'lucide-react';
-import api from '../../api/axios';
-import useAuth from '../../hooks/useAuth';
+import api               from '../../api/axios';
+import useAuth           from '../../hooks/useAuth';
 import AnnouncementsList from '../../components/AnnouncementsList';
+import { formatPrice }   from '../../utils/formatPrice';
 
 const StatCard = ({ icon: Icon, label, value, sub, color, to }) => {
   const content = (
@@ -32,29 +32,30 @@ const StatCard = ({ icon: Icon, label, value, sub, color, to }) => {
 
 const AdminDashboard = () => {
   const { user } = useAuth();
- const [stats,   setStats]   = useState(null);
-const [loading, setLoading] = useState(true);
-const [error,   setError]   = useState('');
-const [announcements, setAnnouncements] = useState([]);
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState('');
+  const [announcements, setAnnouncements] = useState([]);
 
- useEffect(() => {
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [statsRes, annRes] = await Promise.all([
-        api.get('/admin/stats'),
-        api.get('/announcements/platform'),
-      ]);
-      setStats(statsRes.data.stats);
-      setAnnouncements(annRes.data.announcements || []);
-    } catch {
-      setError('Failed to load dashboard data.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  fetchData();
-}, []);
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [statsRes, annRes] = await Promise.all([
+          api.get('/admin/stats'),
+          api.get('/announcements/platform'),
+        ]);
+        setStats(statsRes.data.stats);
+        setAnnouncements(annRes.data.announcements || []);
+      } catch {
+        setError('Failed to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <div className="w-8 h-8 border-4 border-red-600 border-t-transparent
@@ -182,7 +183,7 @@ const [announcements, setAnnouncements] = useState([]);
                 <span className="text-blue-200 text-sm">Total Revenue</span>
               </div>
               <div className="text-3xl font-bold">
-                ${stats.revenue.toFixed(2)}
+                {formatPrice(stats.revenue)}
               </div>
               <div className="text-blue-200 text-xs mt-1">
                 From completed payments
@@ -277,7 +278,7 @@ const [announcements, setAnnouncements] = useState([]);
             </div>
             <div className="text-xs text-gray-500">{action.desc}</div>
           </Link>
-                ))}
+        ))}
       </div>
 
       {/* Announcements Section */}

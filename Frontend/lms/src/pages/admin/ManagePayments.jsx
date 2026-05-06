@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
+import { formatPrice } from '../../utils/formatPrice';
 
-const statusColor = (s) => 
-  s === 'completed' ? 'bg-green-100 text-green-700' : 
-  s === 'pending' ? 'bg-amber-100 text-amber-700' : 
+const statusColor = (s) =>
+  s === 'completed' ? 'bg-green-100 text-green-700' :
+  s === 'pending' ? 'bg-amber-100 text-amber-700' :
   'bg-red-100 text-red-700';
 
 const ManagePayments = () => {
@@ -15,9 +16,9 @@ const ManagePayments = () => {
   const [statusFilter, setStatusFilter] = useState('');
 
   const filtered = payments.filter((p) => {
-    const matchSearch = !search || 
-      p.student?.name.toLowerCase().includes(search.toLowerCase()) || 
-      p.student?.email.toLowerCase().includes(search.toLowerCase()) || 
+    const matchSearch = !search ||
+      p.student?.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.student?.email.toLowerCase().includes(search.toLowerCase()) ||
       p.course?.title.toLowerCase().includes(search.toLowerCase());
     const matchStatus = !statusFilter || p.status === statusFilter;
     return matchSearch && matchStatus;
@@ -26,14 +27,14 @@ const ManagePayments = () => {
   useEffect(() => {
     const fetchPayments = async () => {
       setLoading(true);
-      try { 
-        const res = await api.get('/payments'); 
-        setPayments(res.data.payments || []); 
-        setRevenue(res.data.total_revenue || 0); 
-      } catch { 
-        setError('Failed to load payments.'); 
-      } finally { 
-        setLoading(false); 
+      try {
+        const res = await api.get('/payments');
+        setPayments(res.data.payments || []);
+        setRevenue(res.data.total_revenue || 0);
+      } catch {
+        setError('Failed to load payments.');
+      } finally {
+        setLoading(false);
       }
     };
     fetchPayments();
@@ -54,7 +55,7 @@ const ManagePayments = () => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-5 text-white">
-            <div className="text-2xl font-bold">${revenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatPrice(revenue)}</div>
             <div className="text-blue-100 text-sm mt-0.5">Total Revenue</div>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -73,11 +74,11 @@ const ManagePayments = () => {
         )}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
           <div className="flex flex-col sm:flex-row gap-3">
-            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} 
-              placeholder="Search by student or course..." 
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by student or course..."
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} 
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
               <option value="">All statuses</option>
               <option value="completed">Completed</option>
@@ -116,7 +117,7 @@ const ManagePayments = () => {
                       {p.course?.title}
                     </td>
                     <td className="px-5 py-4">
-                      <span className="font-bold text-gray-900 text-sm">${parseFloat(p.amount).toFixed(2)}</span>
+                      <span className="font-bold text-gray-900 text-sm">{formatPrice(p.amount)}</span>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColor(p.status)}`}>

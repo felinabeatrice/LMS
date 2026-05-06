@@ -16,7 +16,7 @@ const main = async () => {
     create: {
       name: 'Admin',
       email: 'admin@lms.com',
-      password: adminPassword,
+      password: admin123,
       role: 'admin',
       is_approved: true,
     }
@@ -33,7 +33,7 @@ const main = async () => {
     create: {
       name: 'Test Instructor',
       email: 'instructor@lms.com',
-      password: instructorPassword,
+      password: instructor123,
       role: 'instructor',
       is_approved: true, // pre-approved for testing
     }
@@ -50,7 +50,7 @@ const main = async () => {
     create: {
       name: 'Test Student',
       email: 'student@lms.com',
-      password: studentPassword,
+      password: student123,
       role: 'student',
       is_approved: true,
     }
